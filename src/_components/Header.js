@@ -5,6 +5,9 @@ import { useUser } from '@/context/UserContext';
 
 export default function Header() {
   const { user, logout } = useUser();
+  console.log(user)
+
+  const adminEmails = ['abhishek.ganguly@tor.ai', 'admin2@gmail.com', 'admin3@gmail.com']
 
   return (
     <header className="bg-[#111111] text-white px-4 py-3 flex justify-between items-center">
@@ -18,9 +21,9 @@ export default function Header() {
         {user?.is_hr === true && <Link href="/hr-evaluation"><h3 className="text-[13px] font-semibold hover:underline hover:text-gray-300">
           {"CV HR Evaluation".toUpperCase()}
         </h3></Link>}
-        {user?.role === 'ADMIN' && false && <Link href="/admin"><h3 className="text-[13px] font-semibold hover:underline hover:text-gray-300">
+        {adminEmails.includes(user?.email) ? <Link href="/admin"><h3 className="text-[13px] font-semibold hover:underline hover:text-gray-300">
           {"Admin Panel".toUpperCase()}
-        </h3></Link>} {/* Future toggle */}
+        </h3></Link> : null} {/* Future toggle */}
         <button
           onClick={() => {
             logout();
