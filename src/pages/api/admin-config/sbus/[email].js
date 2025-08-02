@@ -12,7 +12,8 @@ export default async function handler(req, res) {
     if (req.method === 'PUT') {
       const response = await axios.put(baseUrl, req.body);  // req.body should contain new name/email/departments
       return res.status(200).json(response.data);
-    } else if (req.method === 'DELETE') {
+    } 
+    else if (req.method === 'DELETE') {
       const response = await axios.delete(baseUrl, {
         params: {
           department_id: req.query.department_id, // ✅ include deptId
