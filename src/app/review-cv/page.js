@@ -87,7 +87,7 @@ export default function ReviewsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {referrals?.length === 0 ? (
-            <h2 className="text-lg font-thin">You Have No CVs To Review Yet!</h2>
+            <h2 className="text-gray-500">You Have No CVs To Review Yet!</h2>
           ) : (
             referrals?.map((ref) => (
               <ReferralCardSBU 
