@@ -1,5 +1,5 @@
 'use client';
-
+import ProtectedRoute from '@/_components/ProtectedRoute';
 import Header from '@/_components/Header';
 import { usePathname } from 'next/navigation';
 
@@ -10,7 +10,13 @@ export default function LayoutWrapper({ children }) {
   return (
     <>
       {!hideHeader && <Header />}
-      <main>{children}</main>
+      <main>
+        {!hideHeader ? (
+          <ProtectedRoute>{children}</ProtectedRoute>
+        ) : (
+          children
+        )}
+      </main>
     </>
   );
 }

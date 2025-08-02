@@ -11,30 +11,40 @@ export const UserProvider = ({ children }) => {
 
   // ✅ Run once on mount to check login
   useEffect(() => {
-      const stored = localStorage.getItem('user')
-  if (stored) {
-    setUser(JSON.parse(stored))
-    setLoading(false)
-    return
-  }
     const fetchUser = async () => {
       try {
-        const res = await axios.get('/api/me', { withCredentials: true })
-        setUser(res.data)
+        const res = await axios.get('/api/me', { withCredentials: true });
+        setUser(res.data);
+        localStorage.setItem('user', JSON.stringify(res.data));
       } catch (err) {
-        setUser(null)
+        // fallback to localStorage if backend says unauthenticated
+        const stored = localStorage.getItem('user');
+        if (stored) {
+          try {
+            setUser(JSON.parse(stored));
+          } catch {
+            localStorage.removeItem('user');
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-
-    fetchUser()
-  }, [])
+    };
+  
+    fetchUser();
+  }, []);
+  
+  
 
   // ✅ Add this login method
   const login = (userData) => {
     setUser(userData)
-    localStorage.setItem('user', JSON.stringify(userData))  // Optional: store in localStorage
+    try {
+      localStorage.setItem('user', JSON.stringify(userData))
+    } catch {}
   }
 
   const logout = async () => {
@@ -42,9 +52,12 @@ export const UserProvider = ({ children }) => {
       await axios.post('/api/logout', {}, { withCredentials: true })
     } catch (err) {
       console.error('Logout failed', err)
+    } finally {
+      setUser(null)
+      localStorage.removeItem('user')
+      // ensure redirect if needed
+      router.replace('/login')
     }
-    setUser(null)
-    localStorage.removeItem('user')
   }
 
   return (
