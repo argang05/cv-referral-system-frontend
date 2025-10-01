@@ -167,6 +167,12 @@ export default function ReferralCardSBU({ referral, emp_id }) {
                   ? localReferral.sbus.map((s) => s.name).join(', ')
                   : 'N/A'}
               </div>
+              <div>
+                <strong>Referral Reason Type:</strong>{' '}
+                {localReferral.referral_reason_type ? 
+                localReferral.referral_reason_type === 'PERSONAL_CONNECTION' ? 'Personal Connection Referral' 
+                : localReferral.referral_reason_type === 'TALENT_BASED' ? 'Referral Based on Talent' : "" : 'N/A'}
+              </div>
               <div><strong>Referrer:</strong> {localReferral.referrer?.name || 'N/A'}</div>
               <div>
                 <strong>Referrer Comments:</strong>{' '}

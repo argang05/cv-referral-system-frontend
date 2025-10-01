@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'PUT') {
     try {
-      const { referral_id, emp_id, candidate_name, candidate_type, additional_comment, cv_url } = req.body;
+      const { referral_id, emp_id, candidate_name, candidate_type, additional_comment, cv_url, referral_reason_type } = req.body;
       if (!referral_id) return res.status(400).json({ error: 'Missing referral_id' });
 
       const backendRes = await axios.put(
@@ -46,6 +46,7 @@ export default async function handler(req, res) {
           candidate_name,
           candidate_type,
           additional_comment,
+          referral_reason_type,
           cv_url
         },
         {

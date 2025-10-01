@@ -132,6 +132,7 @@ export default function ReferralCardHR({ referral }) {
                 <p><strong>Submitted At:</strong> {new Date(referral.submitted_at).toLocaleString()}</p>
                 <p><strong>SBUs:</strong> {referral.sbus.map(s => s.name).join(', ')}</p>
                 <p><strong>Referrer:</strong> {referral.referrer.name}</p>
+                <p><strong>Referral Reason Type:</strong> {referral.referral_reason_type ? referral.referral_reason_type === 'PERSONAL_CONNECTION' ? 'Personal Connection Referral' : 'Referral Based on Talent' : 'N/A'}</p>
                 <p><strong>Referrer Comments:</strong> {referral.additional_comment}</p>
               </div>
 

@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const [formData, setFormData] = useState({
     candidate_name: '',
     candidate_type: 'FULL_TIME',
+    referral_reason_type: '',
     cv: null,
     department: '',
     sbus: [],
@@ -106,6 +107,8 @@ export default function DashboardPage() {
         candidate_name: formData.candidate_name,
         candidate_type: formData.candidate_type,
         sbu_emails: formData.sbus.map(s => s.email),
+        referral_reason_type: formData.referral_reason_type,
+        referral_reason_type: formData.referral_reason_type,
         cv_url: uploadedCvUrl,
         additional_comment: formData.additional_comment,
         emp_id: user?.emp_id,
@@ -118,6 +121,7 @@ export default function DashboardPage() {
         candidate_name: formData.candidate_name,
         candidate_type: formData.candidate_type,
         sbu_emails: formData.sbus.map(s => s.email),
+        referral_reason_type: formData.referral_reason_type,
         cv_url: uploadedCvUrl,
         additional_comment: formData.additional_comment,
         emp_id: user?.emp_id,
@@ -129,6 +133,7 @@ export default function DashboardPage() {
       setFormData({
           candidate_name: '',
           candidate_type: 'FULL_TIME',
+          referral_reason_type: 'TALENT_BASED',
           cv: null,
           department: '',
           sbus: [],
@@ -177,6 +182,18 @@ export default function DashboardPage() {
           >
             <option value="FULL_TIME">Full Time</option>
             <option value="INTERN">Internship</option>
+          </select>
+          <select
+            value={formData.referral_reason_type}
+            onChange={(e) =>
+              setFormData({ ...formData, referral_reason_type: e.target.value })
+            }
+            className="w-full border p-2 rounded"
+            required
+          >
+            <option value="">-- Select Referral Reason --</option>
+            <option value="PERSONAL_CONNECTION">Personal Connection Referral</option>
+            <option value="TALENT_BASED">Referral Based on Talent</option>
           </select>
           <select
             onChange={(e) => handleDepartmentChange(e.target.value)}

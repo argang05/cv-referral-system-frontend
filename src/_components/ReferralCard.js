@@ -131,6 +131,14 @@ export default function ReferralCard({ referral, currentEmpId, updateReferralInL
               <div><strong>CV:</strong> <a href={referral.cv_url} target="_blank" className="text-blue-600 underline">Download CV</a></div>
               <div><strong>SBU Reviewers:</strong> {referral.sbus?.length ? referral.sbus.map(s => s.name).join(', ') : 'N/A'}</div>
               <div><strong>Referrer:</strong> {referral.referrer?.name || 'N/A'}</div>
+              <div>
+                <strong>Referral Reason Type:</strong> 
+              {
+              referral.referral_reason_type ? 
+              referral.referral_reason_type === 'PERSONAL_CONNECTION' ? ' Personal Connection Referral' 
+              : referral.referral_reason_type === 'TALENT_BASED' ? ' Referral Based on Talent' : "" : 'N/A'
+              }
+              </div>
               <div><strong>Comment:</strong> {referral.additional_comment || 'N/A'}</div>
               {referral.review?.decision && <div>
                 <strong>Reviwer Descision:</strong>{' '}

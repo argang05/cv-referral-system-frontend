@@ -9,12 +9,13 @@ export default function UpdateReferralForm({ referral, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     candidate_name: referral.candidate_name,
     candidate_type: referral.candidate_type,
+    referral_reason_type: referral.referral_reason_type,
     cv: null,
     additional_comment: referral.additional_comment || '',
   });
     const [loading, setLoading] = useState(false);
 
-    const handleUpdate = async (e) => {
+  const handleUpdate = async (e) => {
     e.preventDefault();
     setLoading(true)    
     let uploadedCvUrl = referral.cv_url; // Default to existing CV URL
@@ -45,9 +46,12 @@ export default function UpdateReferralForm({ referral, onClose, onSuccess }) {
         emp_id: referral.referrer.emp_id,
         candidate_name: formData.candidate_name,
         candidate_type: formData.candidate_type,
+        referral_reason_type: formData.referral_reason_type,
         additional_comment: formData.additional_comment,
         cv_url: uploadedCvUrl,
         };
+
+        console.log('Submitting Updated Data Like: ',body)
 
         const res = await fetch('/api/referrals', {
         method: 'PUT',
@@ -97,6 +101,16 @@ export default function UpdateReferralForm({ referral, onClose, onSuccess }) {
         >
           <option value="FULL_TIME">Full Time</option>
           <option value="INTERN">Internship</option>
+        </select>
+
+        <select
+          className="w-full border p-2 rounded"
+          value={formData.referral_reason_type}
+          onChange={(e) => setFormData({ ...formData, referral_reason_type: e.target.value })}
+        >
+          <option value="">-- Select Referral Reason --</option>
+          <option value="PERSONAL_CONNECTION">Personal Connection Referral</option>
+          <option value="TALENT_BASED">Referral Based on Talent</option>
         </select>
 
         <input
