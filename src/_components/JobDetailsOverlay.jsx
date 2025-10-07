@@ -10,27 +10,27 @@ export default function JobDetailsOverlay({ job, onClose }) {
   const [visibleCount, setVisibleCount] = useState(5);
   const [applicants, setApplicants] = useState([]);
   const [editingApp, setEditingApp] = useState(null);
+  const [loadingApplicants, setLoadingApplicants] = useState(true);
   const { user } = useUser();
 
-  // ✅ Fetch applicants from backend
   const fetchApplicants = async () => {
     try {
+      setLoadingApplicants(true);
       const res = await axios.get(`/api/job-vacancy/applicants?job_id=${job.job_id}`);
       setApplicants(res.data || []);
     } catch (err) {
       console.error("Failed to fetch applicants:", err.response?.data || err.message);
+    } finally {
+      setLoadingApplicants(false);
     }
   };
 
-  // ✅ Auto-fetch on mount
   useEffect(() => {
     fetchApplicants();
   }, [job.job_id]);
 
-  // ✅ Refresh after edit or delete
   const handleUpdate = () => fetchApplicants();
   const handleDelete = () => fetchApplicants();
-
   const handleViewMore = () => setVisibleCount((prev) => prev + 50);
 
   return (
@@ -62,7 +62,7 @@ export default function JobDetailsOverlay({ job, onClose }) {
                 rel="noopener noreferrer"
                 className="text-blue-600 underline"
               >
-                View File
+                Download File
               </a>
             </p>
           )}
@@ -74,7 +74,24 @@ export default function JobDetailsOverlay({ job, onClose }) {
             Applicants ({applicants.length})
           </h3>
 
-          {applicants.length > 0 ? (
+          {loadingApplicants ? (
+            <div className="space-y-3">
+              {Array(4)
+                .fill(0)
+                .map((_, i) => (
+                  <div
+                    key={i}
+                    className="animate-pulse flex items-center gap-3 bg-gray-100 p-3 rounded-lg"
+                  >
+                    <div className="w-10 h-10 bg-gray-300 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-1/3 bg-gray-300 rounded" />
+                      <div className="h-3 w-2/3 bg-gray-200 rounded" />
+                    </div>
+                  </div>
+                ))}
+            </div>
+          ) : applicants.length > 0 ? (
             <div className="flex flex-col gap-2 max-h-72 overflow-y-auto pr-1">
               {applicants.slice(0, visibleCount).map((app) => (
                 <ApplicantItem
@@ -85,6 +102,7 @@ export default function JobDetailsOverlay({ job, onClose }) {
                   appliers_emp_id={app.appliers_emp_id}
                   user_emp_id={user.emp_id}
                   onEditOpen={setEditingApp}
+                  onUpdate={handleUpdate}
                 />
               ))}
             </div>
@@ -92,7 +110,7 @@ export default function JobDetailsOverlay({ job, onClose }) {
             <p className="text-gray-500 text-sm">No applications yet.</p>
           )}
 
-          {applicants.length > visibleCount && (
+          {!loadingApplicants && applicants.length > visibleCount && (
             <div className="text-center mt-3">
               <button
                 onClick={handleViewMore}
@@ -105,12 +123,11 @@ export default function JobDetailsOverlay({ job, onClose }) {
         </div>
       </div>
 
-      {/* Edit modal */}
       {editingApp && (
         <EditApplicationModal
           app={editingApp}
           onClose={() => setEditingApp(null)}
-          onUpdate={handleUpdate} // ✅ refresh list automatically
+          onUpdate={handleUpdate}
         />
       )}
     </div>

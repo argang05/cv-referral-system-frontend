@@ -4,19 +4,22 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { useState } from 'react';
 
-export default function ApplicantItem({ app, appliers_emp_id, user_emp_id, onDelete, onUpdate }) {
+export default function ApplicantItem({ app, appliers_emp_id, user_emp_id, onDelete, onUpdate,jobId }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [localApp, setLocalApp] = useState({ ...app });
   const [cvFile, setCvFile] = useState(null);
+  const [applicantCount, setApplicantCount] = useState(0)
 
   // ✅ Fetch fresh applicant data after update
   const fetchApplicant = async () => {
     try {
-      const res = await axios.get(`/api/job-vacancy/applicants?job_id=${localApp.job_id}`);
+      const res = await axios.get(`/api/job-vacancy/applicants?job_id=${jobId}`);
       const updated = res.data.find(a => a.applicant_id === localApp.applicant_id);
-      if (updated) setLocalApp(updated);
+      if (updated) {
+        setLocalApp(updated);
+      }
       onUpdate(updated);
     } catch (err) {
       console.error('Failed to fetch updated applicant:', err);
@@ -78,7 +81,9 @@ export default function ApplicantItem({ app, appliers_emp_id, user_emp_id, onDel
         const uploadRes = await axios.post('/api/job-vacancy/upload-applicant-cv', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
-        updatedCvUrl = uploadRes.data.url;
+        console.log("Public URL: ",uploadRes.data.cv_url)
+        updatedCvUrl = encodeURI(uploadRes.data.cv_url);
+        console.log("Updated CV Url",updatedCvUrl)
       }
   
       // Send update request

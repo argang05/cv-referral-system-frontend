@@ -10,14 +10,22 @@ export default function JobVacancyPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editJob, setEditJob] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [loadingJobs, setLoadingJobs] = useState(true);
 
   useEffect(() => {
     fetchJobs();
   }, []);
 
   const fetchJobs = async () => {
-    const res = await axios.get("/api/job-vacancy/");
-    setJobs(res.data);
+    try {
+      setLoadingJobs(true);
+      const res = await axios.get("/api/job-vacancy/");
+      setJobs(res.data);
+    } catch (error) {
+      toast.error("Failed to fetch jobs");
+    } finally {
+      setLoadingJobs(false);
+    }
   };
 
   const handleCreate = async (payload) => {
@@ -40,27 +48,25 @@ export default function JobVacancyPage() {
               setDeleteLoading(true);
               try {
                 await axios.delete(`/api/job-vacancy/${jobId}`);
-                setDeleteLoading(false);
-                toast.dismiss(toastId); // ✅ use captured id instead
+                toast.dismiss(toastId);
                 toast.success("Job deleted successfully!");
                 fetchJobs();
-              } catch (error) {
+              } catch {
                 toast.error("Failed to delete job!");
               } finally {
                 setDeleteLoading(false);
               }
             }}
-            className={`bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 ${deleteLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={`bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 ${
+              deleteLoading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
             disabled={deleteLoading}
           >
             {deleteLoading ? "Deleting..." : "Yes, Delete"}
           </button>
           <button
-            onClick={() => {
-              toast.dismiss(toastId);
-            }}
-            className={`bg-gray-300 px-3 py-1 rounded hover:bg-gray-400 ${deleteLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-            disabled={deleteLoading}
+            onClick={() => toast.dismiss(toastId)}
+            className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400"
           >
             Cancel
           </button>
@@ -68,7 +74,6 @@ export default function JobVacancyPage() {
       </div>
     ), { duration: Infinity });
   };
-  
 
   return (
     <div className="p-6">
@@ -85,20 +90,39 @@ export default function JobVacancyPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {jobs.map((job) => (
-          <JobCard
-            key={job.job_id}
-            job={job}
-            onEdit={() => {
-              setEditJob(job);
-              setModalOpen(true);
-            }}
-            onApplicationSubmitted={fetchJobs}
-            onDelete={() => handleDelete(job.job_id)}
-          />
-        ))}
-      </div>
+      {loadingJobs ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {Array(6)
+            .fill(0)
+            .map((_, i) => (
+              <div key={i} className="animate-pulse p-5 bg-gray-100 rounded-xl shadow">
+                <div className="h-5 bg-gray-300 rounded w-3/4 mb-3"></div>
+                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-5/6 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
+                <div className="flex gap-3">
+                  <div className="h-8 w-20 bg-gray-300 rounded" />
+                  <div className="h-8 w-20 bg-gray-200 rounded" />
+                </div>
+              </div>
+            ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {jobs.map((job) => (
+            <JobCard
+              key={job.job_id}
+              job={job}
+              onEdit={() => {
+                setEditJob(job);
+                setModalOpen(true);
+              }}
+              onApplicationSubmitted={fetchJobs}
+              onDelete={() => handleDelete(job.job_id)}
+            />
+          ))}
+        </div>
+      )}
 
       <JobFormModal
         isOpen={modalOpen}
