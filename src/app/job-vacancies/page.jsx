@@ -94,7 +94,7 @@ export default function JobVacancyPage() {
               setEditJob(job);
               setModalOpen(true);
             }}
-            fetchJob={() => fetchJobs()}
+            onApplicationSubmitted={fetchJobs}
             onDelete={() => handleDelete(job.job_id)}
           />
         ))}

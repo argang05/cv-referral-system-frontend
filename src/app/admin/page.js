@@ -17,7 +17,7 @@ export default function AdminPage() {
 
       <AdminModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
       <button className='cursor-pointer ms-4 mt-4 bg-blue-600 text-white px-4 py-2 rounded' onClick={() => setShowEmailEditor(true)}>
-        Manipulate Email Template</button>
+        Modify Email Template</button>
       {showEmailEditor && <EmailTemplateEditor onClose={() => setShowEmailEditor(false)} />}
     </div>
   )

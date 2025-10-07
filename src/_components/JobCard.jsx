@@ -6,18 +6,10 @@ import { Button } from '@/components/ui/button';
 import JobApplyOverlay from './JobApplyOverlay';
 import { useUser } from '@/context/UserContext';
 
-export default function JobCard({ job, onEdit, onDelete }) {
+export default function JobCard({ job, onEdit, onDelete, onApplicationSubmitted }) {
   const [showDetails, setShowDetails] = useState(false);
   const [showApply, setShowApply] = useState(false);
-  const [jobs, setJobs] = useState(job)
-  const { user, loading } = useUser()
-
-  console.log("Job Entity: ",job)
-
-  const fetchJobs = async () => {
-    const res = await axios.get("/api/job-vacancy/");
-    setJobs(res.data);
-  };
+  const { user } = useUser();
 
   return (
     <>
@@ -28,10 +20,10 @@ export default function JobCard({ job, onEdit, onDelete }) {
           <div className="mt-3 space-y-1 text-sm text-gray-700">
             <p><strong>Experience:</strong> {job.work_experience}</p>
             <p><strong>Mode:</strong> {job.mode}</p>
-            {job.mode === 'IN_OFFICE' || job.mode === 'HYBRID' && (
+            {(job.mode === 'IN_OFFICE' || job.mode === 'HYBRID') && (
               <p><strong>Location:</strong> {job.location}</p>
             )}
-            <p><strong>Applicants:</strong> {job?.applicants_count || 0}</p>
+            <p><strong>Applicants:</strong> {job?.applicants_count ?? 0}</p>
           </div>
         </div>
 
@@ -51,31 +43,25 @@ export default function JobCard({ job, onEdit, onDelete }) {
           </div>
 
           <div className="flex gap-3">
-            <Pencil
-              size={18}
-              className="text-gray-500 hover:text-blue-500 cursor-pointer"
-              onClick={onEdit} // ✅ fixed: no need to pass job manually
-            />
-            <Trash2
-              size={18}
-              className="text-gray-500 hover:text-red-500 cursor-pointer"
-              onClick={onDelete} // ✅ fixed: no need to pass job_id manually
-            />
+            <Pencil size={18} className="text-gray-500 hover:text-blue-500 cursor-pointer" onClick={onEdit} />
+            <Trash2 size={18} className="text-gray-500 hover:text-red-500 cursor-pointer" onClick={onDelete} />
           </div>
         </div>
       </div>
 
-      {showDetails && (
-        <JobDetailsOverlay job={job} onClose={() => setShowDetails(false)} />
-      )}
+      {showDetails && <JobDetailsOverlay job={job} onClose={() => setShowDetails(false)} />}
       {showApply && (
         <JobApplyOverlay
-            job={job}
-            user={user} // pass logged-in user
-            onClose={() => setShowApply(false)}
-            onApplicationSubmitted={fetchJobs} // refresh job/applicants list
+          job={job}
+          user={user}
+          onClose={() => setShowApply(false)}
+          onApplicationSubmitted={() => {
+            setShowApply(false);
+            onApplicationSubmitted?.(); // ✅ refresh job list in parent
+          }}
         />
-        )}
+      )}
     </>
   );
 }
+

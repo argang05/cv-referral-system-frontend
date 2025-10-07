@@ -66,40 +66,49 @@ export default function ApplicantItem({ app, appliers_emp_id, user_emp_id, onDel
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
+  
     try {
       let updatedCvUrl = localApp.cv_url;
-
+  
       if (cvFile) {
         const formData = new FormData();
         formData.append('file', cvFile);
         formData.append('name', localApp.name);
-
+  
         const uploadRes = await axios.post('/api/job-vacancy/upload-applicant-cv', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
         updatedCvUrl = uploadRes.data.url;
       }
-
+  
       // Send update request
       await axios.put(`/api/job-vacancy/application`, {
         applicant_id: localApp.applicant_id,
         name: localApp.name,
         cv_url: updatedCvUrl,
       });
-
-      // ✅ Force refetch to prevent stale props overwrite
-      await fetchApplicant();
-
+  
+      // ✅ Instantly reflect new data in UI before re-fetch
+      setLocalApp((prev) => ({
+        ...prev,
+        name: localApp.name,
+        cv_url: updatedCvUrl,
+      }));
+  
+      // ✅ Optionally verify fresh data from backend
+      setTimeout(fetchApplicant, 400);
+  
       toast.success('Application updated successfully');
       setIsEditing(false);
       setCvFile(null);
     } catch (err) {
       console.error('Update error:', err.response?.data || err.message);
       toast.error('Failed to update application');
+    } finally {
       setIsLoading(false);
     }
   };
+  
 
   return (
     <>

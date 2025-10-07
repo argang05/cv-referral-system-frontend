@@ -11,7 +11,7 @@ export default function Header() {
 
   return (
     <header className="bg-[#111111] text-white px-4 py-3 flex justify-between items-center">
-      <Link href="/"><h1 className="text-lg font-semibold">{"CV Referral System".toUpperCase()}</h1></Link>
+      <Link href="/"><h1 className="text-lg font-semibold">{"Tor-bit"}</h1></Link>
       <nav className="flex gap-4 items-center">
         <Link href="/profile"><h3 className="text-[13px] font-semibold hover:underline hover:text-gray-300">{"Your Profile".toUpperCase()}</h3></Link>
         {/* <Link href="/referrals"><h3 className="text-[13px] font-semibold hover:underline hover:text-gray-300">{"Your Referrals".toUpperCase()}</h3></Link> */}
