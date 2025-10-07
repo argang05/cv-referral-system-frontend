@@ -132,7 +132,20 @@ export default function ReferralCardHR({ referral }) {
                 <p><strong>Submitted At:</strong> {new Date(referral.submitted_at).toLocaleString()}</p>
                 <p><strong>SBUs:</strong> {referral.sbus.map(s => s.name).join(', ')}</p>
                 <p><strong>Referrer:</strong> {referral.referrer.name}</p>
-                <p><strong>Referral Reason Type:</strong> {referral.referral_reason_type ? referral.referral_reason_type === 'PERSONAL_CONNECTION' ? 'Personal Connection Referral' : 'Referral Based on Talent' : 'N/A'}</p>
+                <div>
+                <strong>Referral Category:</strong>{" "}
+                {referral.referral_reason_type ? (
+                  {
+                    COURTESY: "Courtesy Referral – Shared out of obligation or goodwill",
+                    POTENTIAL_FIT: "Potential Fit Referral – Strong background, depends on role fitment",
+                    DIRECT_ROLE_FIT: "Direct Role Fit Referral – Clearly aligned to an open position",
+                    INTERNAL_NETWORK: "Internal Network Referral – Former colleague or vendor contact",
+                    STRATEGIC: "Strategic Referral – High-value or niche candidate for special review",
+                  }[referral.referral_reason_type] || "N/A"
+                ) : (
+                  "N/A"
+                )}
+              </div>
                 <p><strong>Referrer Comments:</strong> {referral.additional_comment}</p>
               </div>
 

@@ -85,7 +85,9 @@ export default function UpdateReferralForm({ referral, onClose, onSuccess }) {
         className="bg-white p-6 rounded-lg w-full max-w-xl border shadow space-y-4 overflow-y-auto max-h-[80vh]"
       >
         <h2 className="text-xl font-bold mb-2">Update Referral</h2>
-
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+              Candidate Name:
+        </label>        
         <input
           type="text"
           className="w-full border p-2 rounded"
@@ -93,7 +95,9 @@ export default function UpdateReferralForm({ referral, onClose, onSuccess }) {
           onChange={(e) => setFormData({ ...formData, candidate_name: e.target.value })}
           placeholder="Candidate Name"
         />
-
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Full Time Or Intership:
+        </label>        
         <select
           className="w-full border p-2 rounded"
           value={formData.candidate_type}
@@ -103,16 +107,36 @@ export default function UpdateReferralForm({ referral, onClose, onSuccess }) {
           <option value="INTERN">Internship</option>
         </select>
 
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Referral Category
+        </label>
         <select
           className="w-full border p-2 rounded"
           value={formData.referral_reason_type}
           onChange={(e) => setFormData({ ...formData, referral_reason_type: e.target.value })}
+          required
         >
-          <option value="">-- Select Referral Reason --</option>
-          <option value="PERSONAL_CONNECTION">Personal Connection Referral</option>
-          <option value="TALENT_BASED">Referral Based on Talent</option>
+          <option value="">-- Select Referral Category --</option>
+          <option value="COURTESY">
+            Courtesy Referral – Shared out of obligation or goodwill
+          </option>
+          <option value="POTENTIAL_FIT">
+            Potential Fit Referral – Strong background, depends on role fitment
+          </option>
+          <option value="DIRECT_ROLE_FIT">
+            Direct Role Fit Referral – Clearly aligned to an open position
+          </option>
+          <option value="INTERNAL_NETWORK">
+            Internal Network Referral – Former colleague or vendor contact
+          </option>
+          <option value="STRATEGIC">
+            Strategic Referral – High-value or niche candidate for special review
+          </option>
         </select>
 
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Upload CV:
+        </label>        
         <input
           type="file"
           accept=".pdf,.doc,.docx"

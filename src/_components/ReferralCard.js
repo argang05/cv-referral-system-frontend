@@ -132,12 +132,18 @@ export default function ReferralCard({ referral, currentEmpId, updateReferralInL
               <div><strong>SBU Reviewers:</strong> {referral.sbus?.length ? referral.sbus.map(s => s.name).join(', ') : 'N/A'}</div>
               <div><strong>Referrer:</strong> {referral.referrer?.name || 'N/A'}</div>
               <div>
-                <strong>Referral Reason Type:</strong> 
-              {
-              referral.referral_reason_type ? 
-              referral.referral_reason_type === 'PERSONAL_CONNECTION' ? ' Personal Connection Referral' 
-              : referral.referral_reason_type === 'TALENT_BASED' ? ' Referral Based on Talent' : "" : 'N/A'
-              }
+                <strong>Referral Category:</strong>{" "}
+                {referral.referral_reason_type ? (
+                  {
+                    COURTESY: "Courtesy Referral – Shared out of obligation or goodwill",
+                    POTENTIAL_FIT: "Potential Fit Referral – Strong background, depends on role fitment",
+                    DIRECT_ROLE_FIT: "Direct Role Fit Referral – Clearly aligned to an open position",
+                    INTERNAL_NETWORK: "Internal Network Referral – Former colleague or vendor contact",
+                    STRATEGIC: "Strategic Referral – High-value or niche candidate for special review",
+                  }[referral.referral_reason_type] || "N/A"
+                ) : (
+                  "N/A"
+                )}
               </div>
               <div><strong>Comment:</strong> {referral.additional_comment || 'N/A'}</div>
               {referral.review?.decision && <div>
