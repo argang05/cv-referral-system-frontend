@@ -1,19 +1,43 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 
 export default function JobFormModal({ isOpen, onClose, onSubmit, job }) {
   const [formData, setFormData] = useState({
-    job_title: job?.job_title || "",
-    job_description: job?.job_description || "",
-    work_experience: job?.work_experience || "",
-    mode: job?.mode || "WFH",
-    location: job?.location || "",
+    job_title: "",
+    job_description: "",
+    work_experience: "",
+    mode: "WFH",
+    location: "",
     document: null,
   });
 
   const [isUploading, setIsUploading] = useState(false);
+
+  // ✅ Whenever modal opens or job changes, populate the form
+  useEffect(() => {
+    if (job) {
+      setFormData({
+        job_title: job.job_title || "",
+        job_description: job.job_description || "",
+        work_experience: job.work_experience || "",
+        mode: job.mode || "WFH",
+        location: job.location || "",
+        document: null, // reset file input
+      });
+    } else {
+      setFormData({
+        job_title: "",
+        job_description: "",
+        work_experience: "",
+        mode: "WFH",
+        location: "",
+        document: null,
+      });
+    }
+  }, [job, isOpen]);
+
   if (!isOpen) return null;
 
   const handleChange = (e) => {
@@ -26,10 +50,11 @@ export default function JobFormModal({ isOpen, onClose, onSubmit, job }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       let documentUrl = job?.job_desc_document_url || "";
 
-      // If new document uploaded
+      // ✅ Upload new document if added
       if (formData.document) {
         setIsUploading(true);
         const fileData = new FormData();
@@ -40,7 +65,6 @@ export default function JobFormModal({ isOpen, onClose, onSubmit, job }) {
         });
 
         documentUrl = res.data?.file_url || "";
-        console.log("Uploaded Job Description URL:", documentUrl);
         setIsUploading(false);
       }
 
@@ -55,8 +79,6 @@ export default function JobFormModal({ isOpen, onClose, onSubmit, job }) {
             : "",
         job_desc_document_url: documentUrl,
       };
-
-      console.log("Final Payload:", payload);
 
       await onSubmit(payload);
       toast.success(job ? "Job updated successfully!" : "Job created successfully!");
@@ -151,7 +173,7 @@ export default function JobFormModal({ isOpen, onClose, onSubmit, job }) {
               disabled={isUploading}
               className="px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700"
             >
-              {isUploading ? "Uploading..." : job ? "Update Job" : "Create Job"}
+              {isUploading ? "Uploading..." : job ? "Update Job" : "Upload Job"}
             </button>
           </div>
         </form>

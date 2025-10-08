@@ -20,7 +20,7 @@ export default function JobCard({ job, onEdit, onDelete, onApplicationSubmitted 
           <div className="mt-3 space-y-1 text-sm text-gray-700">
             <p><strong>Experience:</strong> {job.work_experience}</p>
             <p><strong>Mode:</strong> {job.mode}</p>
-            {(job.mode === 'IN_OFFICE' || job.mode === 'HYBRID') && (
+            {(job.mode === 'OFFICE' || job.mode === 'HYBRID') && (
               <p><strong>Location:</strong> {job.location}</p>
             )}
             <p><strong>Applicants:</strong> {job?.applicants_count ?? 0}</p>
@@ -49,7 +49,7 @@ export default function JobCard({ job, onEdit, onDelete, onApplicationSubmitted 
         </div>
       </div>
 
-      {showDetails && <JobDetailsOverlay job={job} onClose={() => setShowDetails(false)} />}
+      {showDetails && <JobDetailsOverlay job={job} onClose={() => setShowDetails(false)} onApplicantsChange={onApplicationSubmitted} />}
       {showApply && (
         <JobApplyOverlay
           job={job}
@@ -64,4 +64,3 @@ export default function JobCard({ job, onEdit, onDelete, onApplicationSubmitted 
     </>
   );
 }
-

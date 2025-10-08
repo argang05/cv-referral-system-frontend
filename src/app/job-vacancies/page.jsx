@@ -109,7 +109,7 @@ export default function JobVacancyPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {jobs.map((job) => (
+          {jobs.length > 0 ? jobs.map((job) => (
             <JobCard
               key={job.job_id}
               job={job}
@@ -120,7 +120,7 @@ export default function JobVacancyPage() {
               onApplicationSubmitted={fetchJobs}
               onDelete={() => handleDelete(job.job_id)}
             />
-          ))}
+          )) : <span className="text-gray-500 text-lg">No Job Vacancy!</span>}
         </div>
       )}
 

@@ -6,7 +6,7 @@ import { useUser } from "@/context/UserContext";
 import { X } from "lucide-react";
 import ApplicantItem from "./ApplicantItem";
 
-export default function JobDetailsOverlay({ job, onClose }) {
+export default function JobDetailsOverlay({ job, onClose,  onApplicantsChange}) {
   const [visibleCount, setVisibleCount] = useState(5);
   const [applicants, setApplicants] = useState([]);
   const [editingApp, setEditingApp] = useState(null);
@@ -29,8 +29,19 @@ export default function JobDetailsOverlay({ job, onClose }) {
     fetchApplicants();
   }, [job.job_id]);
 
-  const handleUpdate = () => fetchApplicants();
-  const handleDelete = () => fetchApplicants();
+  const handleUpdate = () => {
+    fetchApplicants();
+    if (onApplicantsChange) {
+      onApplicantsChange(); // ✅ refresh JobCard count
+    }
+  };
+
+  const handleDelete = () => {
+    fetchApplicants();
+    if (onApplicantsChange) {
+      onApplicantsChange(); // ✅ refresh JobCard count
+    }
+  };
   const handleViewMore = () => setVisibleCount((prev) => prev + 50);
 
   return (
@@ -52,7 +63,7 @@ export default function JobDetailsOverlay({ job, onClose }) {
           <p><strong>Description:</strong> {job.job_description}</p>
           <p><strong>Experience:</strong> {job.work_experience}</p>
           <p><strong>Mode:</strong> {job.mode}</p>
-          {job.mode === 'IN_OFFICE' && <p><strong>Location:</strong> {job.location}</p>}
+          {job.mode === 'OFFICE' && <p><strong>Location:</strong> {job.location}</p>}
           {job.job_desc_document_url && (
             <p>
               <strong>Job Description Doc:</strong>{' '}

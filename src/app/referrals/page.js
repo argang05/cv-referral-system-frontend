@@ -296,27 +296,42 @@ function ReferralsPage() {
             </div>
         )}
   
-        {/* <h3 className="text-lg font-semibold mb-4">Your Referred CVs</h3> */}
-        {pageLoading ? (
-            <div className="text-center text-lg text-gray-500 font-thin py-8">
-              Loading your dashboard...
+    {pageLoading ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array(6)
+          .fill(0)
+          .map((_, i) => (
+            <div
+              key={i}
+              className="animate-pulse p-5 bg-gray-100 rounded-xl shadow"
+            >
+              <div className="h-5 bg-gray-300 rounded w-3/4 mb-3"></div>
+              <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-5/6 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
+              <div className="flex gap-3">
+                <div className="h-8 w-20 bg-gray-300 rounded" />
+                <div className="h-8 w-20 bg-gray-200 rounded" />
+              </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {referrals.length === 0 ? (
-                <h2 className="text-gray-500">You Have No Referrals Yet</h2>
-              ) : (
-                referrals.map((referral) => (
-                  <ReferralCard
-                    key={referral.id}
-                    referral={referral}
-                    updateReferralInList={handleUpdateReferral}
-                    removeReferralFromList={removeReferralFromList}
-                  />
-                ))
-              )}
-            </div>
-          )}
+          ))}
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {referrals.length === 0 ? (
+          <h2 className="text-gray-500">You Have No Referrals Yet</h2>
+        ) : (
+          referrals.map((referral) => (
+            <ReferralCard
+              key={referral.id}
+              referral={referral}
+              updateReferralInList={handleUpdateReferral}
+              removeReferralFromList={removeReferralFromList}
+            />
+          ))
+        )}
+      </div>
+)}
   
       </div>
     );

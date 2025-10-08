@@ -109,7 +109,7 @@ export default function EmailTemplateEditor({ initialPurpose = 'CV_TO_SBU', onCl
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold">Manipulate Email Template</h2>
+            <h2 className="text-xl font-bold">Modify Email Template</h2>
             <div className="text-sm text-gray-600">
               Editing: {PURPOSES.find((p) => p.value === selectedPurpose)?.label}
             </div>

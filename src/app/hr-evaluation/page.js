@@ -26,7 +26,25 @@ export default function HREvaluationPage() {
       <h2 className="text-xl font-semibold mb-6">HR Evaluation Page:</h2>
 
       {loading ? (
-        <p className="text-gray-500">Loading CVs for HR Review...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array(6)
+            .fill(0)
+            .map((_, i) => (
+              <div
+                key={i}
+                className="animate-pulse p-5 bg-gray-100 rounded-xl shadow"
+              >
+                <div className="h-5 bg-gray-300 rounded w-3/4 mb-3"></div>
+                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-5/6 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
+                <div className="flex gap-3">
+                  <div className="h-8 w-20 bg-gray-300 rounded" />
+                  <div className="h-8 w-20 bg-gray-200 rounded" />
+                </div>
+              </div>
+            ))}
+        </div>
       ) : referrals.length === 0 ? (
         <p className="text-gray-500">You have no CVs for HR Evaluation.</p>
       ) : (
