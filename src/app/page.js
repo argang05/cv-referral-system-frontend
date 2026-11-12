@@ -29,11 +29,11 @@ export default function DashboardPage() {
       description: "Post internal job openings and allow employees to apply for available positions within the organization.",
       link: "/job-vacancies",
     },
-    {
-      title: "Internal Job Rotation System (Work In Progress)",
-      description: "Facilitate structured internal job rotations for skill development and career growth of employees.",
-      link: "/internal-job-rotation",
-    },
+    // {
+    //   title: "Internal Job Rotation System (Work In Progress)",
+    //   description: "Facilitate structured internal job rotations for skill development and career growth of employees.",
+    //   link: "/internal-job-rotation",
+    // },
   ];
 
   return (

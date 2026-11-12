@@ -62,7 +62,7 @@ export default function JobDetailsOverlay({ job, onClose,  onApplicantsChange}) 
         <div className="space-y-2 text-gray-700 text-sm">
           <p><strong>Description:</strong> {job.job_description}</p>
           <p><strong>Experience:</strong> {job.work_experience}</p>
-          <p><strong>Mode:</strong> {job.mode}</p>
+          {/* <p><strong>Mode:</strong> {job.mode}</p> */}
           {job.mode === 'OFFICE' && <p><strong>Location:</strong> {job.location}</p>}
           {job.job_desc_document_url && (
             <p>
