@@ -13,7 +13,14 @@ export default function AdminModal({ onClose, isOpen }) {
   const [newDepartment, setNewDepartment] = useState('');
   const [selectedDepartmentId, setSelectedDepartmentId] = useState(null);
   const [selectedSbuId, setSelectedSbuId] = useState('');
-  const [isOther, setIsOther] = useState(false);
+
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  
+  const [reviewerType, setReviewerType] = useState("SBU");
+  
+  // SBU | EMPLOYEE | OTHER
+  
+  const [employeeList, setEmployeeList] = useState([]);
   const [otherName, setOtherName] = useState('');
   const [otherEmail, setOtherEmail] = useState('');
   const [loadingDepartments, setLoadingDepartments] = useState(false);
@@ -21,12 +28,16 @@ export default function AdminModal({ onClose, isOpen }) {
   const [addingDepartment, setAddingDepartment] = useState(false);
   const [addingReviewer, setAddingReviewer] = useState(false);
   const [removingReviewerIds, setRemovingReviewerIds] = useState({}); // track per dept-index
+  const [departmentSearch, setDepartmentSearch] = useState('');
 
   const fetchDepartments = async () => {
     setLoadingDepartments(true);
     try {
       const res = await axios.get('/api/admin-config/departments');
-      setDepartments(res.data);
+      const sortedDepartments = res.data.sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+      setDepartments(sortedDepartments);
     } catch (err) {
       toast.error('Failed to load departments');
     } finally {
@@ -46,10 +57,44 @@ export default function AdminModal({ onClose, isOpen }) {
     }
   };
 
+  const fetchEmployees = async () => {
+
+    try {
+  
+      const res = await axios.get(
+  
+        '/api/admin-config/available-employees'
+  
+      );
+  
+      setEmployeeList(res.data);
+  
+    } catch (err) {
+  
+      toast.error("Failed to load employees");
+  
+    }
+  
+  };
+
+  // useEffect(() => {
+  //   fetchDepartments();
+  //   fetchSbus();
+  // }, []);
+
   useEffect(() => {
-    fetchDepartments();
-    fetchSbus();
-  }, []);
+
+    if(isOpen){
+  
+      fetchDepartments();
+  
+      fetchSbus();
+  
+      fetchEmployees();
+  
+    }
+  
+  }, [isOpen]);
 
   const handleAddDepartment = async () => {
     if (!newDepartment.trim()) return;
@@ -81,63 +126,60 @@ export default function AdminModal({ onClose, isOpen }) {
   
       let reviewerObj = null;
   
-      if (isOther) {
-        if (!otherName.trim() || !otherEmail.trim()) {
-          toast.error('Provide name and email for new reviewer');
-          return;
+      if(reviewerType==="OTHER"){
+
+        if(!otherName.trim() || !otherEmail.trim()){
+         toast.error("Provide name and email");
+         return;
         }
-        const email = otherEmail.trim();
-        reviewerObj = { name: otherName.trim(), email };
-  
-        // Try to fetch existing SBU to merge departments
-        let existingSbu = null;
-        try {
-          const res = await axios.get(`/api/admin-config/sbus?email=${encodeURIComponent(email)}`);
-          existingSbu = res.data?.[0] || null;
-        } catch {
-          existingSbu = null;
+        
+        reviewerObj={
+         name:otherName.trim(),
+         email:otherEmail.trim()
+        };
+        
         }
-  
-        let mergedDepartments = [dept.name];
-        if (existingSbu) {
-          const existingDeps = Array.isArray(existingSbu.departments)
-            ? existingSbu.departments
-            : JSON.parse(existingSbu.departments || '[]');
-          mergedDepartments = Array.from(new Set([...existingDeps, dept.name]));
-          // Update existing SBU
-          await axios.put(`/api/admin-config/sbus/${encodeURIComponent(email)}/`, {
-            name: otherName.trim(),
-            email,
-            departments: [dept.name],
-          });
-        } else {
-          // Create new SBU with this department
-          await axios.post('/api/admin-config/sbus/', {
-            name: otherName.trim(),
-            email,
-            departments: [dept.name],
-          });
+        else if(reviewerType==="EMPLOYEE"){
+        
+        const emp = employeeList.find(
+        (e)=>String(e.emp_id)===String(selectedEmployeeId)
+        );
+        
+        
+        if(!emp){
+         toast.error("Employee not found");
+         return;
         }
-      } else {
-        if (!selectedSbuId) {
-          toast.error('Select an existing SBU or choose Other');
-          return;
+        
+        
+        reviewerObj={
+         name:emp.name,
+         email:emp.email
+        };
+        
+        
         }
-        const sbu = sbuList.find((s) => String(s.id) === String(selectedSbuId));
-        if (!sbu) throw new Error('Selected SBU not found');
-        reviewerObj = { name: sbu.name, email: sbu.email };
-  
-        // Merge department into existing SBU departments
-        const existingDepartments = Array.isArray(sbu.departments)
-          ? sbu.departments
-          : JSON.parse(sbu.departments || '[]');
-        const updatedDeptList = Array.from(new Set([...existingDepartments, dept.name]));
-        await axios.put(`/api/admin-config/sbus/${encodeURIComponent(sbu.email)}/`, {
-          name: sbu.name,
-          email: sbu.email,
-          departments: updatedDeptList,
-        });
-      }
+        else {
+        
+        
+        const sbu=sbuList.find(
+        (s)=>String(s.id)===String(selectedSbuId)
+        );
+        
+        
+        if(!sbu){
+         toast.error("Select reviewer");
+         return;
+        }
+        
+        
+        reviewerObj={
+         name:sbu.name,
+         email:sbu.email
+        };
+        
+        
+        }
   
       // Update Department reviewer list
       const alreadyPresent = (dept.reviewers || []).some((r) => r.email === reviewerObj.email);
@@ -151,7 +193,7 @@ export default function AdminModal({ onClose, isOpen }) {
         toast.success('Reviewer added');
         // reset selection
         setSelectedSbuId('');
-        setIsOther(false);
+        setReviewerType("SBU");
         setOtherName('');
         setOtherEmail('');
         await fetchDepartments();
@@ -193,7 +235,12 @@ export default function AdminModal({ onClose, isOpen }) {
       setRemovingReviewerIds((p) => ({ ...p, [key]: false }));
     }
   };
-  
+
+  const filteredDepartments = departments.filter((dept) =>
+    dept.name
+      .toLowerCase()
+      .includes(departmentSearch.trim().toLowerCase())
+  );
   
 
   return (
@@ -224,17 +271,34 @@ export default function AdminModal({ onClose, isOpen }) {
             <div className="flex-1 min-w-[180px]">
               <label className="block text-sm font-medium mb-1">Select Department</label>
               <select
-                className="w-full border p-2 rounded"
-                value={selectedDepartmentId || ''}
-                onChange={(e) => {
-                  setSelectedDepartmentId(e.target.value);
-                  // reset reviewer selection when changing department
-                  setSelectedSbuId('');
-                  setIsOther(false);
-                }}
-              >
+
+                    className="w-full border p-2 rounded"
+
+                    value={selectedDepartmentId || ''}
+
+                    onChange={(e) => {
+
+                      setSelectedDepartmentId(e.target.value);
+
+                      // reset reviewer selection when changing department
+
+                      setSelectedSbuId('');
+
+                      setSelectedEmployeeId('');
+
+                      setReviewerType("SBU");
+
+                      // reset manual reviewer fields also
+
+                      setOtherName('');
+
+                      setOtherEmail('');
+
+                    }}
+
+                  >
                 <option value="">-- Choose Department --</option>
-                {departments.map((d) => (
+                {filteredDepartments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}
                   </option>
@@ -245,30 +309,71 @@ export default function AdminModal({ onClose, isOpen }) {
             <div className="flex-1 min-w-[180px]">
               <label className="block text-sm font-medium mb-1">Select Reviewer</label>
               <select
-                className="w-full border p-2 rounded"
-                value={isOther ? 'other' : selectedSbuId}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === 'other') {
-                    setIsOther(true);
-                    setSelectedSbuId('');
-                  } else {
-                    setIsOther(false);
-                    setSelectedSbuId(val);
-                  }
-                }}
+              className="w-full border p-2 rounded"
+              value={
+                reviewerType === "OTHER"
+                  ? "other"
+                  : reviewerType === "EMPLOYEE"
+                  ? selectedEmployeeId
+                  : selectedSbuId
+              }
+              onChange={(e)=>{
+              const value=e.target.value;
+              if(value==="other"){
+              setReviewerType("OTHER");
+              setSelectedSbuId("");
+              setSelectedEmployeeId("");
+              }
+              else if(
+              employeeList.some(
+              (emp)=>String(emp.emp_id)===String(value)
+              )
+              ){
+              setReviewerType("EMPLOYEE");
+              setSelectedEmployeeId(value);
+              setSelectedSbuId("");
+              }
+              else{
+              setReviewerType("SBU");
+              setSelectedSbuId(value);
+              setSelectedEmployeeId("");
+              }
+              }}
               >
-                <option value="">-- Select SBU Reviewer --</option>
-                {sbuList.map((s) => (
-                  <option key={s.email} value={s.id}>
-                    {s.name} ({s.email})
-                  </option>
-                ))}
-                <option value="other">Other (new reviewer)</option>
+              <option value="">
+              -- Select Reviewer --
+              </option>
+              <optgroup label="Existing SBU Reviewers">
+              {
+              sbuList.map((s)=>(
+              <option 
+              key={s.email}
+              value={s.id}
+              >
+              {s.name} ({s.email})
+              </option>
+              ))
+              }
+              </optgroup>
+              <optgroup label="Existing Employees">
+              {
+              employeeList.map((emp)=>(
+              <option
+              key={emp.emp_id}
+              value={emp.emp_id}
+              >
+              {emp.name} ({emp.email})
+              </option>
+              ))
+              }
+              </optgroup>
+              <option value="other">
+              Other (new reviewer)
+              </option>
               </select>
             </div>
 
-            {isOther && (
+            {reviewerType === "OTHER" && (
               <>
                 <div className="flex-1 min-w-[160px]">
                   <label className="block text-sm font-medium mb-1">Name</label>
@@ -298,11 +403,18 @@ export default function AdminModal({ onClose, isOpen }) {
         </div>
 
         {/* Department List */}
+        <div className="mb-4">
+          <Input
+            placeholder="Search department by name..."
+            value={departmentSearch}
+            onChange={(e) => setDepartmentSearch(e.target.value)}
+            />
+        </div>
         <div className="space-y-6 max-h-[60vh] overflow-y-auto">
           {loadingDepartments ? (
             <div className="text-center py-6">Loading departments...</div>
           ) : (
-            departments.map((dept) => (
+            filteredDepartments.map((dept) => (
               <div key={dept.id} className="border p-4 rounded">
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="font-semibold text-lg">{dept.name}</h3>
@@ -329,7 +441,11 @@ export default function AdminModal({ onClose, isOpen }) {
               </div>
             ))
           )}
-          {!loadingDepartments && departments.length === 0 && <div>No departments yet.</div>}
+          {!loadingDepartments && filteredDepartments.length === 0 && (
+            <div className="text-center py-4 text-gray-500">
+              No matching departments found.
+            </div>
+            )}
         </div>
       </div>
     </div>)
