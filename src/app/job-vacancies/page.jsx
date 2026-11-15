@@ -86,7 +86,7 @@ export default function JobVacancyPage() {
           }}
           className="px-4 py-2 bg-orange-600 text-white text-sm rounded-xl hover:bg-orange-700"
         >
-          {"+ Upload Job Vacancy Details".toUpperCase()}
+          {"+ Post Job Vacancy Details".toUpperCase()}
         </button>
       </div>
 

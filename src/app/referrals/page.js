@@ -17,7 +17,7 @@ function ReferralsPage() {
     const [cvUrl , setCvUrl] = useState("")
     const [formData, setFormData] = useState({
       candidate_name: '',
-      candidate_type: 'FULL_TIME',
+      candidate_type: 'FULL_TIME_FRESHER',
       referral_reason_type: '',
       cv: null,
       department: '',
@@ -132,7 +132,7 @@ function ReferralsPage() {
         setShowForm(false);
         setFormData({
             candidate_name: '',
-            candidate_type: 'FULL_TIME',
+            candidate_type: 'FULL_TIME_FRESHER',
             referral_reason_type: 'TALENT_BASED',
             cv: null,
             department: '',
@@ -178,16 +178,38 @@ function ReferralsPage() {
               required
             />
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Full Time Or Internship:
+              Type and Experience:
             </label>           
             <select
-              value={formData.candidate_type}
-              onChange={(e) => setFormData({ ...formData, candidate_type: e.target.value })}
-              className="w-full border p-2 rounded"
-              required
+            value={formData.candidate_type}
+            onChange={(e) =>
+            setFormData({
+            ...formData,
+            candidate_type: e.target.value,
+            })
+            }
+            className="w-full border p-2 rounded"
+            required
             >
-              <option value="FULL_TIME">Full Time</option>
-              <option value="INTERN">Internship</option>
+            <optgroup label="Full Time">
+            <option value="FULL_TIME_FRESHER">
+            Full Time - Fresher
+            </option>
+
+            <option value="FULL_TIME_EXPERIENCED">
+            Full Time - Experienced
+            </option>
+            </optgroup>
+
+            <optgroup label="Internship">
+            <option value="INTERN_FRESHER">
+            Internship - Fresher
+            </option>
+
+            <option value="INTERN_EXPERIENCED">
+            Internship - Experienced
+            </option>
+            </optgroup>
             </select>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Referral Category:

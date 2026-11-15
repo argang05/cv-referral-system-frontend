@@ -27,6 +27,9 @@ export default function Header() {
         <Link href="/profile" className="text-sm font-semibold hover:underline hover:text-gray-300">
           YOUR PROFILE
         </Link>
+        <Link href="/referrals" className="text-sm font-semibold hover:underline hover:text-gray-300">
+          REFER A CV
+        </Link>
         {(user?.role === 'REVIEWER' || user?.role === 'HR') && (
           <Link href="/review-cv" className="text-sm font-semibold hover:underline hover:text-gray-300">
             CV FOR REVIEW
