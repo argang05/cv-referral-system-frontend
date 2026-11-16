@@ -36,15 +36,37 @@ export default async function handler(req, res) {
 
   if (req.method === 'PUT') {
     try {
-      const { referral_id, emp_id, candidate_name, candidate_type, additional_comment, cv_url, referral_reason_type } = req.body;
-      if (!referral_id) return res.status(400).json({ error: 'Missing referral_id' });
-
+      // Extract existing fields and new optional contact details
+      const {
+        referral_id,
+        emp_id,
+        candidate_name,
+        candidate_type,
+        candidate_email,  // NEW
+        candidate_phone,  // NEW
+        additional_comment,
+        cv_url,
+        referral_reason_type
+      } = req.body;
+  
+      if (!referral_id) {
+        return res.status(400).json({
+          error: 'Missing referral_id'
+        });
+      }
+  
+      // Forward the update request to Django
       const backendRes = await axios.put(
         `${process.env.BACKEND_DOMAIN}/api/referrals/${referral_id}/update/`,
         {
           emp_id,
           candidate_name,
           candidate_type,
+  
+          // NEW: Optional candidate contact details
+          candidate_email,
+          candidate_phone,
+  
           additional_comment,
           referral_reason_type,
           cv_url
@@ -55,11 +77,18 @@ export default async function handler(req, res) {
           }
         }
       );
-
+  
       return res.status(backendRes.status).json(backendRes.data);
+  
     } catch (err) {
-      console.error("Update error:", err.response?.data || err.message);
-      return res.status(err.response?.status || 500).json({ error: 'Update failed' });
+      console.error(
+        "Update error:",
+        err.response?.data || err.message
+      );
+  
+      return res.status(err.response?.status || 500).json({
+        error: 'Update failed'
+      });
     }
   }
 

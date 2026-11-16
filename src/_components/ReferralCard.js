@@ -128,6 +128,8 @@ export default function ReferralCard({ referral, currentEmpId, updateReferralInL
 
             <div className="space-y-2 text-sm">
               <div><strong>Submitted At:</strong> {new Date(referral.submitted_at).toLocaleString()}</div>
+              <div><strong>Candidate Email:</strong> {referral.candidate_email || 'N/A'}</div>
+              <div><strong>Candidate Phone:</strong> {referral.candidate_phone || 'N/A'}</div>
               <div><strong>CV:</strong> <a href={referral.cv_url} target="_blank" className="text-blue-600 underline">Download CV</a></div>
               <div><strong>SBU Reviewers:</strong> {referral.sbus?.length ? referral.sbus.map(s => s.name).join(', ') : 'N/A'}</div>
               <div><strong>Referrer:</strong> {referral.referrer?.name || 'N/A'}</div>
