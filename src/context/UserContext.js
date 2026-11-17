@@ -1,70 +1,81 @@
-'use client'
+"use client";
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import axios from "axios";
 
-import { createContext, useContext, useState, useEffect } from 'react'
-import axios from 'axios'
-
-const UserContext = createContext()
+const UserContext = createContext(null);
 
 export const UserProvider = ({ children }) => {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const sessionVersion = useRef(0);
 
-  // ✅ Run once on mount to check login
+  const clearUser = useCallback(() => {
+    setUser(null);
+    try { localStorage.removeItem("user"); }
+    catch (error) { console.error("Failed to clear cached user:", error); }
+  }, []);
+
   useEffect(() => {
+    let active = true;
+    const version = ++sessionVersion.current;
     const fetchUser = async () => {
       try {
-        const res = await axios.get('/api/me', { withCredentials: true });
+        const res = await axios.get("/api/me", { withCredentials: true });
+        if (!active || version !== sessionVersion.current) return;
         setUser(res.data);
-        localStorage.setItem('user', JSON.stringify(res.data));
-      } catch (err) {
-        // fallback to localStorage if backend says unauthenticated
-        const stored = localStorage.getItem('user');
-        if (stored) {
-          try {
-            setUser(JSON.parse(stored));
-          } catch {
-            localStorage.removeItem('user');
-            setUser(null);
-          }
-        } else {
-          setUser(null);
-        }
+        try { localStorage.setItem("user", JSON.stringify(res.data)); }
+        catch (error) { console.error("Failed to cache user:", error); }
+      } catch (error) {
+        if (!active || version !== sessionVersion.current) return;
+        clearUser();
+        const status = error.response?.status;
+        if (status !== 401) console.error("Failed to restore authenticated session:", error.response?.data || error.message);
       } finally {
-        setLoading(false);
+        if (active && version === sessionVersion.current) setLoading(false);
       }
     };
-  
     fetchUser();
+    return () => { active = false; };
+  }, [clearUser]);
+
+  const login = useCallback(userData => {
+    sessionVersion.current += 1;
+    setUser(userData);
+    setLoading(false);
+    try { localStorage.setItem("user", JSON.stringify(userData)); }
+    catch (error) { console.error("Failed to cache user information:", error); }
   }, []);
-  
-  
 
-  // ✅ Add this login method
-  const login = (userData) => {
-    setUser(userData)
+  const logout = useCallback(async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
     try {
-      localStorage.setItem('user', JSON.stringify(userData))
-    } catch {}
-  }
-
-  const logout = async () => {
-    try {
-      await axios.post('/api/logout', {}, { withCredentials: true })
-    } catch (err) {
-      console.error('Logout failed', err)
+      await axios.post("/api/logout", {}, { withCredentials: true });
+      sessionVersion.current += 1;
+      clearUser();
+      setLoading(false);
+      router.replace("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout failed:", error.response?.data || error.message);
+      throw error;
     } finally {
-      setUser(null)
-      localStorage.removeItem('user')
-      // ensure redirect if needed
-      router.replace('/login')
+      setLoggingOut(false);
     }
-  }
+  }, [router, clearUser, loggingOut]);
 
   return (
-    <UserContext.Provider value={{ user, setUser, login, logout, loading }}>
+    <UserContext.Provider value={{ user, setUser, login, logout, loading, loggingOut }}>
       {children}
     </UserContext.Provider>
-  )
-}
+  );
+};
 
-export const useUser = () => useContext(UserContext)
+export const useUser = () => {
+  const context = useContext(UserContext);
+  if (!context) throw new Error("useUser must be used inside UserProvider.");
+  return context;
+};

@@ -1,135 +1,228 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
+import { Plus, Search, BriefcaseBusiness, CheckCircle2, LockKeyhole, Archive } from "lucide-react";
+import { useUser } from "@/context/UserContext";
 import JobFormModal from "@/_components/JobFormModal";
 import JobCard from "@/_components/JobCard";
+import ConfirmActionModal from "@/_components/ConfirmActionModal";
+import ReferralSuccessModal from "@/_components/ReferralSuccessModal";
 
-export default function JobVacancyPage() {
+const ACTION_LABELS = { publish: "published", close: "closed", reopen: "reopened", archive: "archived" };
+const ALLOWED_ACTIONS = { DRAFT: ["publish", "archive"], OPEN: ["close"], CLOSED: ["reopen", "archive"] };
+
+function JobVacancyContent() {
+  const searchParams = useSearchParams();
+  const notificationJobId = searchParams.get("job_id");
+  const { user, loading: userLoading } = useUser();
+  const canManage = user?.role === "ADMIN" || user?.role === "HR" || user?.is_hr === true;
   const [jobs, setJobs] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editJob, setEditJob] = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [loadingJobs, setLoadingJobs] = useState(true);
+  const [actionLoading, setActionLoading] = useState(null);
+  const [confirmation, setConfirmation] = useState(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [highlightedJobId, setHighlightedJobId] = useState(null);
+  const [referralSuccess, setReferralSuccess] = useState(null);
+  const jobRefs = useRef({});
+  const highlightTimer = useRef(null);
+  const processedNotification = useRef(null);
+  const actionLock = useRef(false);
 
-  useEffect(() => {
-    fetchJobs();
+  const fetchJobs = useCallback(async (silent = false) => {
+    try {
+      if (!silent) setLoadingJobs(true);
+      const res = await axios.get("/api/job-vacancy/");
+      setJobs(Array.isArray(res.data) ? res.data : res.data?.results || []);
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Failed to fetch jobs");
+    } finally {
+      if (!silent) setLoadingJobs(false);
+    }
   }, []);
 
-  const fetchJobs = async () => {
+  useEffect(() => {
+    if (userLoading) return;
+    if (user) fetchJobs();
+    else { setJobs([]); setLoadingJobs(false); }
+  }, [userLoading, user?.emp_id, fetchJobs]);
+
+  useEffect(() => () => { if (highlightTimer.current) clearTimeout(highlightTimer.current); }, []);
+
+  const filteredJobs = useMemo(() => jobs.filter(job => {
+    const term = search.trim().toLowerCase();
+    const matchesSearch = !term || [job.job_title, job.department_name, job.location, job.key_skills].some(value => String(value || "").toLowerCase().includes(term));
+    return matchesSearch && (statusFilter === "ALL" || job.status === statusFilter) && (typeFilter === "ALL" || job.employment_type === typeFilter);
+  }), [jobs, search, statusFilter, typeFilter]);
+
+  useEffect(() => {
+    if (loadingJobs || !user || !notificationJobId || processedNotification.current === notificationJobId) return;
+    const target = jobs.find(job => String(job.job_id) === String(notificationJobId));
+    processedNotification.current = notificationJobId;
+    if (!target) { toast.error("This job posting is unavailable or you do not have access."); return; }
+    setSearch("");
+    setStatusFilter("ALL");
+    setTypeFilter("ALL");
+    setHighlightedJobId(String(notificationJobId));
+    if (highlightTimer.current) clearTimeout(highlightTimer.current);
+    highlightTimer.current = setTimeout(() => setHighlightedJobId(null), 4000);
+  }, [notificationJobId, loadingJobs, jobs, user?.emp_id]);
+
+  useEffect(() => {
+    if (!highlightedJobId || loadingJobs) return;
+    const timer = setTimeout(() => jobRefs.current[highlightedJobId]?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
+    return () => clearTimeout(timer);
+  }, [highlightedJobId, filteredJobs, loadingJobs]);
+
+  const handleCreate = async payload => {
+    const res = await axios.post("/api/job-vacancy/", payload);
+    await fetchJobs(true);
+    return res;
+  };
+
+  const handleEdit = async payload => {
+    if (!editJob?.job_id) throw new Error("No job selected for editing.");
+    const res = await axios.put(`/api/job-vacancy/${editJob.job_id}`, payload);
+    await fetchJobs(true);
+    return res;
+  };
+
+  const handleReferralSubmitted = details => {
+    setReferralSuccess({
+      candidateName: details?.candidateName || "Referred Candidate",
+      jobTitle: details?.jobTitle || "Internal Job Posting"
+    });
+    void fetchJobs(true);
+  };
+
+  const requestAction = (job, action) => {
+    if (!canManage || actionLock.current || !ALLOWED_ACTIONS[job.status]?.includes(action)) return;
+    setConfirmation({ job, action });
+  };
+
+  const confirmAction = async () => {
+    if (!confirmation || actionLock.current) return;
+    const { job, action } = confirmation;
+    actionLock.current = true;
+    setActionLoading(`${job.job_id}-${action}`);
     try {
-      setLoadingJobs(true);
-      const res = await axios.get("/api/job-vacancy/");
-      setJobs(res.data);
+      await axios.post(`/api/job-vacancy/${job.job_id}/${action}`);
+      toast.success(`Job ${ACTION_LABELS[action]} successfully.`);
+      setConfirmation(null);
+      await fetchJobs(true);
     } catch (error) {
-      toast.error("Failed to fetch jobs");
+      const data = error.response?.data;
+      const message = data?.error || data?.detail || (data && typeof data === "object" ? Object.entries(data).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`).join(" | ") : "Action failed.");
+      toast.error(message);
     } finally {
-      setLoadingJobs(false);
+      actionLock.current = false;
+      setActionLoading(null);
     }
   };
 
-  const handleCreate = async (payload) => {
-    await axios.post("/api/job-vacancy/", payload);
-    fetchJobs();
+  const stats = {
+    total: jobs.length,
+    open: jobs.filter(j => j.status === "OPEN").length,
+    closed: jobs.filter(j => j.status === "CLOSED").length,
+    draft: jobs.filter(j => j.status === "DRAFT").length
   };
 
-  const handleEdit = async (payload) => {
-    await axios.put(`/api/job-vacancy/${editJob.job_id}`, payload);
-    fetchJobs();
-  };
-
-  const handleDelete = async (jobId) => {
-    const toastId = toast.custom((t) => (
-      <div className="p-3 bg-white rounded-lg shadow-md">
-        <p className="font-medium">Are you sure you want to delete this job?</p>
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={async () => {
-              setDeleteLoading(true);
-              try {
-                await axios.delete(`/api/job-vacancy/${jobId}`);
-                toast.dismiss(toastId);
-                toast.success("Job deleted successfully!");
-                fetchJobs();
-              } catch {
-                toast.error("Failed to delete job!");
-              } finally {
-                setDeleteLoading(false);
-              }
-            }}
-            className={`bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 ${
-              deleteLoading ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-            disabled={deleteLoading}
-          >
-            {deleteLoading ? "Deleting..." : "Yes, Delete"}
-          </button>
-          <button
-            onClick={() => toast.dismiss(toastId)}
-            className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    ), { duration: Infinity });
-  };
+  if (userLoading) return <div className="p-6 text-gray-500">Loading your account...</div>;
+  if (!user) return <div className="p-6 text-gray-600">Please log in to view internal job postings.</div>;
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Internal Job Vacancies</h1>
-        <button
-          onClick={() => {
-            setEditJob(null);
-            setModalOpen(true);
-          }}
-          className="px-4 py-2 bg-orange-600 text-white text-sm rounded-xl hover:bg-orange-700"
-        >
-          {"+ Post Job Vacancy Details".toUpperCase()}
-        </button>
+    <div className="p-4 md:p-6">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Internal Job Postings</h1>
+          <p className="mt-1 text-sm text-gray-500">Explore internal opportunities and refer suitable candidates.</p>
+        </div>
+        {canManage && (
+          <button type="button" onClick={() => { setEditJob(null); setModalOpen(true); }} className="flex items-center justify-center gap-2 rounded-xl bg-[#F6490D] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#d63f09]">
+            <Plus size={18} /> Create Job Posting
+          </button>
+        )}
+      </div>
+
+      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {[
+          { label: "Total Postings", value: stats.total, icon: BriefcaseBusiness },
+          { label: "Open", value: stats.open, icon: CheckCircle2 },
+          { label: "Closed", value: stats.closed, icon: LockKeyhole },
+          { label: canManage ? "Drafts" : "Available to View", value: canManage ? stats.draft : stats.total, icon: Archive }
+        ].map(({ label, value, icon: Icon }) => (
+          <div key={label} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-500">{label}</span>
+              <Icon size={18} className="text-[#F6490D]" />
+            </div>
+            <p className="mt-2 text-2xl font-semibold text-gray-900">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mb-6 flex flex-col gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm md:flex-row">
+        <div className="relative flex-1">
+          <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by job title, SBU, skills or location..." className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-3 text-sm focus:border-orange-500 focus:outline-none" />
+        </div>
+        <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none">
+          <option value="ALL">All Statuses</option>
+          <option value="OPEN">Open</option>
+          <option value="CLOSED">Closed</option>
+          {canManage && <option value="DRAFT">Draft</option>}
+          {canManage && <option value="ARCHIVED">Archived</option>}
+        </select>
+        <select value={typeFilter} onChange={event => setTypeFilter(event.target.value)} className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none">
+          <option value="ALL">All Employment Types</option>
+          <option value="FULL_TIME">Full Time</option>
+          <option value="INTERNSHIP">Internship</option>
+        </select>
       </div>
 
       {loadingJobs ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {Array(6)
-            .fill(0)
-            .map((_, i) => (
-              <div key={i} className="animate-pulse p-5 bg-gray-100 rounded-xl shadow">
-                <div className="h-5 bg-gray-300 rounded w-3/4 mb-3"></div>
-                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-5/6 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-                <div className="flex gap-3">
-                  <div className="h-8 w-20 bg-gray-300 rounded" />
-                  <div className="h-8 w-20 bg-gray-200 rounded" />
-                </div>
-              </div>
-            ))}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className="animate-pulse rounded-2xl bg-gray-100 p-5 shadow-sm">
+              <div className="mb-4 h-6 w-3/4 rounded bg-gray-300" />
+              <div className="mb-3 h-4 w-full rounded bg-gray-200" />
+              <div className="mb-3 h-4 w-5/6 rounded bg-gray-200" />
+              <div className="h-10 w-1/2 rounded bg-gray-300" />
+            </div>
+          ))}
+        </div>
+      ) : filteredJobs.length ? (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {filteredJobs.map(job => (
+            <div key={job.job_id} ref={element => { if (element) jobRefs.current[job.job_id] = element; else delete jobRefs.current[job.job_id]; }} className={`rounded-2xl transition-all duration-300 ${highlightedJobId === String(job.job_id) ? "ring-2 ring-[#F6490D] ring-offset-4" : ""}`}>
+              <JobCard job={job} canManage={canManage} actionLoading={actionLoading} onEdit={() => { setEditJob(job); setModalOpen(true); }} onAction={action => requestAction(job, action)} onReferralSubmitted={handleReferralSubmitted} />
+            </div>
+          ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {jobs.length > 0 ? jobs.map((job) => (
-            <JobCard
-              key={job.job_id}
-              job={job}
-              onEdit={() => {
-                setEditJob(job);
-                setModalOpen(true);
-              }}
-              onApplicationSubmitted={fetchJobs}
-              onDelete={() => handleDelete(job.job_id)}
-            />
-          )) : <span className="text-gray-500 text-lg">No Job Vacancy!</span>}
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white py-16 text-center text-gray-500">
+          {jobs.length ? "No postings match your filters." : "No job postings available."}
         </div>
       )}
 
-      <JobFormModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={editJob ? handleEdit : handleCreate}
-        job={editJob}
-      />
+      {canManage && <JobFormModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditJob(null); }} onSubmit={editJob ? handleEdit : handleCreate} onRefresh={() => fetchJobs(true)} job={editJob} />}
+
+      <ConfirmActionModal isOpen={Boolean(confirmation)} job={confirmation?.job} action={confirmation?.action} loading={Boolean(actionLoading)} onClose={() => { if (!actionLock.current) setConfirmation(null); }} onConfirm={confirmAction} />
+
+      <ReferralSuccessModal isOpen={Boolean(referralSuccess)} candidateName={referralSuccess?.candidateName} jobTitle={referralSuccess?.jobTitle} onClose={() => setReferralSuccess(null)} />
     </div>
+  );
+}
+
+export default function JobVacancyPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-gray-500">Loading job postings...</div>}>
+      <JobVacancyContent />
+    </Suspense>
   );
 }
