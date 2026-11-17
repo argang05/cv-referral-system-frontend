@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { X, UploadCloud } from "lucide-react";
@@ -12,10 +12,18 @@ const INITIAL_FORM = {
   document: null
 };
 
-export default function JobFormModal({ isOpen, onClose, onSubmit, job }) {
+const getError = error => {
+  const data = error.response?.data;
+  return data?.error || data?.detail || (data && typeof data === "object"
+    ? Object.entries(data).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`).join(" | ")
+    : error.message) || "Failed to save job posting.";
+};
+
+export default function JobFormModal({ isOpen, onClose, onSubmit, onRefresh, onJobSaved, job }) {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [departments, setDepartments] = useState([]);
   const [saving, setSaving] = useState(false);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -39,6 +47,7 @@ export default function JobFormModal({ isOpen, onClose, onSubmit, job }) {
 
   const handleSubmit = async (e, publish = false) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     if (formData.min_experience !== "" && formData.max_experience !== "" && Number(formData.max_experience) < Number(formData.min_experience)) {
       toast.error("Maximum experience cannot be less than minimum experience.");
       return;
@@ -47,8 +56,11 @@ export default function JobFormModal({ isOpen, onClose, onSubmit, job }) {
       toast.error("Please upload a PDF of maximum 5 MB.");
       return;
     }
+    submittingRef.current = true;
+    setSaving(true);
+    let savedSuccessfully = false;
+
     try {
-      setSaving(true);
       let documentUrl = job?.job_desc_document_url || "";
       if (formData.document) {
         const upload = new FormData();
@@ -56,6 +68,7 @@ export default function JobFormModal({ isOpen, onClose, onSubmit, job }) {
         const res = await axios.post("/api/job-vacancy/upload-job-desc", upload);
         documentUrl = res.data.file_url;
       }
+
       const payload = {
         job_title: formData.job_title,
         job_description: formData.job_description,
@@ -74,20 +87,34 @@ export default function JobFormModal({ isOpen, onClose, onSubmit, job }) {
         behavioural_attributes: formData.behavioural_attributes,
         closing_date: formData.closing_date || null
       };
+
       const result = await onSubmit(payload);
-      const savedJob = result?.data?.job || result?.data;
+      let savedJob = result?.data?.job || result?.data;
+
       if (publish) {
         const jobId = job?.job_id || savedJob?.job_id;
         if (!jobId) throw new Error("Job ID missing after saving draft.");
-        await axios.post(`/api/job-vacancy/${jobId}/publish`);
+        const publishResponse = await axios.post(`/api/job-vacancy/${jobId}/publish`);
+        savedJob = publishResponse.data?.job || publishResponse.data;
       }
+
+      savedSuccessfully = true;
+      if (savedJob?.job_id && onJobSaved) onJobSaved(savedJob);
       toast.success(publish ? "Job published successfully!" : job ? "Job updated successfully!" : "Draft saved successfully!");
       onClose();
+
+      if (onRefresh) {
+        try { await onRefresh(); }
+        catch (refreshError) { console.error("Job list refresh failed:", refreshError); }
+      }
     } catch (error) {
-      const data = error.response?.data;
-      const message = data?.error || data?.detail || (data && typeof data === "object" ? Object.entries(data).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`).join(" | ") : error.message);
-      toast.error(message || "Failed to save job posting.");
+      toast.error(getError(error));
+      if (!savedSuccessfully && publish && onRefresh) {
+        try { await onRefresh(); }
+        catch (refreshError) { console.error("Job list refresh failed:", refreshError); }
+      }
     } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   };
@@ -108,7 +135,7 @@ export default function JobFormModal({ isOpen, onClose, onSubmit, job }) {
             <h2 className="text-xl font-semibold text-gray-900">{job ? "Edit Job Posting" : "Create Job Posting"}</h2>
             <p className="mt-1 text-xs text-gray-500">Save as draft or publish when all mandatory fields are complete.</p>
           </div>
-          <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-900"><X size={22} /></button>
+          <button type="button" onClick={onClose} disabled={saving} className="text-gray-500 hover:text-gray-900 disabled:opacity-50"><X size={22} /></button>
         </div>
         <form onSubmit={e => handleSubmit(e, false)} className="overflow-y-auto p-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -162,7 +189,7 @@ export default function JobFormModal({ isOpen, onClose, onSubmit, job }) {
             </div>
           </div>
           <div className="sticky bottom-0 mt-6 flex flex-wrap justify-end gap-3 border-t bg-white pt-4">
-            <button type="button" onClick={onClose} className="rounded-lg bg-gray-200 px-5 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-300">Cancel</button>
+            <button type="button" onClick={onClose} disabled={saving} className="rounded-lg bg-gray-200 px-5 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-300 disabled:opacity-50">Cancel</button>
             <button type="submit" disabled={saving} className="rounded-lg border border-[#F6490D] px-5 py-2.5 text-sm font-medium text-[#F6490D] hover:bg-orange-50 disabled:opacity-50">{saving ? "Saving..." : "Save Changes"}</button>
             {(!job || job.status === "DRAFT") && <button type="button" disabled={saving} onClick={e => handleSubmit(e, true)} className="rounded-lg bg-[#F6490D] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#d63f09] disabled:opacity-50">{saving ? "Processing..." : "Save & Publish"}</button>}
           </div>

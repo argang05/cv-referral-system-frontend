@@ -33,26 +33,39 @@ function JobVacancyContent() {
   const highlightTimer = useRef(null);
   const processedNotification = useRef(null);
   const actionLock = useRef(false);
+  const fetchSequence = useRef(0);
 
   const fetchJobs = useCallback(async (silent = false) => {
+    const sequence = ++fetchSequence.current;
     try {
       if (!silent) setLoadingJobs(true);
-      const res = await axios.get("/api/job-vacancy/");
-      setJobs(Array.isArray(res.data) ? res.data : res.data?.results || []);
+      const res = await axios.get("/api/job-vacancy/", { headers: { "Cache-Control": "no-cache" } });
+      if (sequence === fetchSequence.current) setJobs(Array.isArray(res.data) ? res.data : res.data?.results || []);
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to fetch jobs");
+      if (sequence === fetchSequence.current) toast.error(error.response?.data?.error || "Failed to fetch jobs");
+      throw error;
     } finally {
-      if (!silent) setLoadingJobs(false);
+      if (!silent && sequence === fetchSequence.current) setLoadingJobs(false);
     }
   }, []);
 
   useEffect(() => {
     if (userLoading) return;
-    if (user) fetchJobs();
-    else { setJobs([]); setLoadingJobs(false); }
+    if (user) void fetchJobs().catch(() => {});
+    else { fetchSequence.current++; setJobs([]); setLoadingJobs(false); }
   }, [userLoading, user?.emp_id, fetchJobs]);
 
   useEffect(() => () => { if (highlightTimer.current) clearTimeout(highlightTimer.current); }, []);
+
+  const syncJob = useCallback(updatedJob => {
+    if (!updatedJob?.job_id) return;
+    fetchSequence.current++;
+    setJobs(previous => {
+      const exists = previous.some(item => String(item.job_id) === String(updatedJob.job_id));
+      if (exists) return previous.map(item => String(item.job_id) === String(updatedJob.job_id) ? { ...item, ...updatedJob } : item);
+      return [updatedJob, ...previous];
+    });
+  }, []);
 
   const filteredJobs = useMemo(() => jobs.filter(job => {
     const term = search.trim().toLowerCase();
@@ -80,16 +93,12 @@ function JobVacancyContent() {
   }, [highlightedJobId, filteredJobs, loadingJobs]);
 
   const handleCreate = async payload => {
-    const res = await axios.post("/api/job-vacancy/", payload);
-    await fetchJobs(true);
-    return res;
+    return await axios.post("/api/job-vacancy/", payload);
   };
 
   const handleEdit = async payload => {
     if (!editJob?.job_id) throw new Error("No job selected for editing.");
-    const res = await axios.put(`/api/job-vacancy/${editJob.job_id}`, payload);
-    await fetchJobs(true);
-    return res;
+    return await axios.put(`/api/job-vacancy/${editJob.job_id}`, payload);
   };
 
   const handleReferralSubmitted = details => {
@@ -97,7 +106,7 @@ function JobVacancyContent() {
       candidateName: details?.candidateName || "Referred Candidate",
       jobTitle: details?.jobTitle || "Internal Job Posting"
     });
-    void fetchJobs(true);
+    void fetchJobs(true).catch(() => {});
   };
 
   const requestAction = (job, action) => {
@@ -111,10 +120,12 @@ function JobVacancyContent() {
     actionLock.current = true;
     setActionLoading(`${job.job_id}-${action}`);
     try {
-      await axios.post(`/api/job-vacancy/${job.job_id}/${action}`);
+      const response = await axios.post(`/api/job-vacancy/${job.job_id}/${action}`);
+      if (response.data?.job) syncJob(response.data.job);
       toast.success(`Job ${ACTION_LABELS[action]} successfully.`);
       setConfirmation(null);
-      await fetchJobs(true);
+      try { await fetchJobs(true); }
+      catch (refreshError) { console.error("Job list refresh failed:", refreshError); }
     } catch (error) {
       const data = error.response?.data;
       const message = data?.error || data?.detail || (data && typeof data === "object" ? Object.entries(data).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`).join(" | ") : "Action failed.");
@@ -210,7 +221,7 @@ function JobVacancyContent() {
         </div>
       )}
 
-      {canManage && <JobFormModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditJob(null); }} onSubmit={editJob ? handleEdit : handleCreate} onRefresh={() => fetchJobs(true)} job={editJob} />}
+      {canManage && <JobFormModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditJob(null); }} onSubmit={editJob ? handleEdit : handleCreate} onJobSaved={syncJob} onRefresh={() => fetchJobs(true)} job={editJob} />}
 
       <ConfirmActionModal isOpen={Boolean(confirmation)} job={confirmation?.job} action={confirmation?.action} loading={Boolean(actionLoading)} onClose={() => { if (!actionLock.current) setConfirmation(null); }} onConfirm={confirmAction} />
 
