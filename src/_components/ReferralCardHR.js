@@ -253,7 +253,7 @@ function OfferDetails({ evaluation, compact = false }) {
       </div>
       {!compact && evaluation.offer_released && !evaluation.offer_outcome && (
         <p className="mt-3 text-xs font-medium">
-          The offer has been released. HR must record the candidate's final outcome before finalization.
+          {"The offer has been released. HR must record the candidate's final outcome before finalization."}
         </p>
       )}
     </div>
@@ -957,7 +957,7 @@ export default function ReferralCardHR({ referral }) {
                             </select>
                             {!offerOutcome && (
                               <p className="mt-2 text-xs text-amber-700">
-                                You can save this as a draft while waiting for the candidate's final response.
+                                {"You can save this as a draft while waiting for the candidate's final response."}
                               </p>
                             )}
                           </div>
@@ -976,7 +976,7 @@ export default function ReferralCardHR({ referral }) {
                               disabled={submitting || refreshing}
                               className="w-full rounded-lg border border-green-300 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-200" />
                             <p className="mt-2 text-xs text-green-800">
-                              Enter the candidate's actual date of joining. This field is mandatory before finalization.
+                              {"Enter the candidate's actual date of joining. This field is mandatory before finalization."}
                             </p>
                           </div>
                         )}
