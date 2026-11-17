@@ -2,10 +2,12 @@
 import { useState } from 'react'
 import AdminModal from '@/_components/AdminModal'
 import EmailTemplateEditor from '@/_components/EmailTemplateEditor'
+import CompletedReferrals from '@/_components/CompletedReferrals'
 
 export default function AdminPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [showEmailEditor, setShowEmailEditor] = useState(false)
+  const [showCompletedReferrals, setShowCompletedReferrals] = useState(false)
 
   const actions = [
     {
@@ -17,6 +19,11 @@ export default function AdminPage() {
       title: "Modify Email Template",
       description: "Edit the automated email templates used in referral and review flows.",
       onClick: () => setShowEmailEditor(true),
+    },
+    {
+      title: "Completed Referrals & Audit Trail",
+      description: "View finalized referrals, recruitment history, and manage permanent deletion.",
+      onClick: () => setShowCompletedReferrals(true),
     },
   ]
 
@@ -34,16 +41,15 @@ export default function AdminPage() {
             <h3 className="text-lg font-semibold text-gray-800 mb-2 group-hover:text-orange-600 transition-colors">
               {action.title}
             </h3>
-            <p className="text-gray-500 text-sm leading-relaxed">
-              {action.description}
-            </p>
+            <p className="text-gray-500 text-sm leading-relaxed">{action.description}</p>
           </div>
         ))}
       </div>
 
       <AdminModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
-      {showEmailEditor && (
-        <EmailTemplateEditor onClose={() => setShowEmailEditor(false)} />
+      {showEmailEditor && <EmailTemplateEditor onClose={() => setShowEmailEditor(false)} />}
+      {showCompletedReferrals && (
+        <CompletedReferrals onClose={() => setShowCompletedReferrals(false)} />
       )}
     </div>
   )
