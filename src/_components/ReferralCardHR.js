@@ -920,7 +920,7 @@ export default function ReferralCardHR({ referral }) {
                         </select>
                         {status === 'IN_PROGRESS' && (
                           <p className="mt-2 text-xs text-blue-700">
-                            Select the candidate's current recruitment stage. This evaluation can be saved as a draft but cannot be finalized.
+                            {"Select the candidate's current recruitment stage. This evaluation can be saved as a draft but cannot be finalized."}
                           </p>
                         )}
                       </div>
