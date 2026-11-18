@@ -25,7 +25,7 @@ export default function DashboardPage() {
       link: "/referrals",
     },
     {
-      title: "Internal Job Posting System (Work In Progress)",
+      title: "Internal Job Posting System",
       description: "Post internal job openings and allow employees to apply for available positions within the organization.",
       link: "/job-vacancies",
     },
