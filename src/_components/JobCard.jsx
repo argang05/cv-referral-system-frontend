@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Pencil, Info, MapPin, Users, BriefcaseBusiness, CalendarDays, Send, Play, LockKeyhole, RotateCcw, Archive } from "lucide-react";
+import { Pencil, Info, MapPin, Users, BriefcaseBusiness, Send, Play, LockKeyhole, RotateCcw, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import JobDetailsOverlay from "./JobDetailsOverlay";
 import IJPReferralForm from "./IJPReferralForm";
@@ -15,9 +15,16 @@ const STATUS_STYLES = {
 export default function JobCard({ job, canManage = false, onEdit, onAction, onReferralSubmitted, actionLoading }) {
   const [showDetails, setShowDetails] = useState(false);
   const [showRefer, setShowRefer] = useState(false);
-  const closingPassed = job.closing_date && new Date(`${job.closing_date}T23:59:59`).getTime() < Date.now();
-  const canRefer = job.status === "OPEN" && !closingPassed;
-  const experience = job.min_experience != null && job.max_experience != null ? `${job.min_experience}–${job.max_experience} years` : job.work_experience || "Not specified";
+  const canRefer = job.status === "OPEN";
+
+  const experience = job.min_experience != null
+    ? job.max_experience != null
+      ? `${job.min_experience}–${job.max_experience} years`
+      : `${job.min_experience}+ years`
+    : job.max_experience != null
+      ? `Up to ${job.max_experience} years`
+      : job.work_experience || "Not specified";
+
   const busy = Boolean(actionLoading);
 
   const handleLifecycleAction = action => {
@@ -42,14 +49,15 @@ export default function JobCard({ job, canManage = false, onEdit, onAction, onRe
             <h2 className="text-xl font-semibold text-gray-900">{job.job_title || "Untitled Draft"}</h2>
             <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[job.status] || "bg-gray-100 text-gray-600"}`}>{job.status}</span>
           </div>
+
           <div className="space-y-2.5 text-sm text-gray-700">
             <p className="flex items-center gap-2"><BriefcaseBusiness size={16} className="shrink-0 text-[#F6490D]" /><span><strong>SBU:</strong> {job.department_name || "Not assigned"}</span></p>
             <p className="flex items-center gap-2"><Users size={16} className="shrink-0 text-[#F6490D]" /><span><strong>Type:</strong> {job.employment_type === "FULL_TIME" ? "Full Time" : job.employment_type === "INTERNSHIP" ? "Internship" : "Not specified"}</span></p>
             <p className="flex items-center gap-2"><BriefcaseBusiness size={16} className="shrink-0 text-[#F6490D]" /><span><strong>Experience:</strong> {experience}</span></p>
             <p className="flex items-center gap-2"><MapPin size={16} className="shrink-0 text-[#F6490D]" /><span><strong>Location:</strong> {job.location || "Not specified"}</span></p>
-            <p className="flex items-center gap-2"><CalendarDays size={16} className="shrink-0 text-[#F6490D]" /><span><strong>Closing:</strong> {job.closing_date ? new Date(`${job.closing_date}T00:00:00`).toLocaleDateString("en-IN") : "Not specified"}</span></p>
             <p className="text-xs text-gray-500">Referrals received: {job.referrals_count ?? 0}</p>
           </div>
+
           {job.key_skills && <p className="mt-4 line-clamp-2 text-sm text-gray-500"><strong>Skills:</strong> {job.key_skills}</p>}
         </div>
 
@@ -58,6 +66,7 @@ export default function JobCard({ job, canManage = false, onEdit, onAction, onRe
             <Button variant="outline" size="sm" onClick={() => setShowDetails(true)}><Info size={16} className="mr-1" /> More Info</Button>
             {canRefer && <Button size="sm" className="bg-[#F6490D] text-white hover:bg-[#d23e0b]" onClick={() => setShowRefer(true)}><Send size={15} className="mr-1" /> Refer Candidate</Button>}
           </div>
+
           {canManage && (
             <div className="flex flex-wrap items-center gap-2">
               {job.status !== "ARCHIVED" && <button type="button" onClick={onEdit} title="Edit posting" className="rounded-lg p-1.5 text-gray-500 hover:bg-blue-50 hover:text-blue-600"><Pencil size={18} /></button>}

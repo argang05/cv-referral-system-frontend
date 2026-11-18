@@ -41,20 +41,27 @@ export default function IJPReferralForm({ job, onClose, onSubmitted }) {
     setFormData(prev => ({ ...prev, [name]: files ? files[0] || null : value }));
   };
 
+  const hasContact = Boolean(formData.candidate_email.trim() || formData.candidate_phone.trim());
+  const validEmail = !formData.candidate_email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.candidate_email.trim());
+  const canSubmit = Boolean(formData.candidate_name.trim() && formData.candidate_type && formData.cv && hasContact && validEmail && !submitting);
+
   const handleSubmit = async e => {
     e.preventDefault();
     if (submitting) return;
     if (!user?.emp_id) return toast.error("Please log in again.");
     if (!formData.candidate_name.trim() || !formData.candidate_type || !formData.cv) return toast.error("Complete all required fields.");
-    if (!formData.candidate_email.trim() && !formData.candidate_phone.trim()) return toast.error("Provide at least one candidate contact detail.");
+    if (!hasContact) return toast.error("Provide at least one candidate contact detail: email or phone.");
+    if (!validEmail) return toast.error("Please enter a valid candidate email address.");
     if (formData.cv.size > 5 * 1024 * 1024) return toast.error("CV cannot exceed 5 MB.");
     if (!/\.(pdf|doc|docx)$/i.test(formData.cv.name)) return toast.error("Only PDF, DOC and DOCX files are accepted.");
+
     try {
       setSubmitting(true);
       const upload = new FormData();
       upload.append("cv", formData.cv);
       const uploaded = await axios.post("/api/upload-cv", upload);
       if (!uploaded.data?.url) throw new Error("CV upload did not return a URL.");
+
       await axios.post("/api/referrals/ijp", {
         emp_id: user.emp_id,
         job_id: job.job_id,
@@ -66,6 +73,7 @@ export default function IJPReferralForm({ job, onClose, onSubmitted }) {
         cv_url: uploaded.data.url,
         additional_comment: formData.additional_comment
       });
+
       onSubmitted?.({ candidateName: formData.candidate_name.trim(), jobTitle: job.job_title });
     } catch (error) {
       const data = error.response?.data;
@@ -87,6 +95,7 @@ export default function IJPReferralForm({ job, onClose, onSubmitted }) {
           </div>
           <button type="button" onClick={onClose} disabled={submitting} className="text-gray-500 hover:text-gray-900 disabled:opacity-50" aria-label="Close referral form"><X size={22} /></button>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto p-5">
           <div className="rounded-xl border border-orange-100 bg-orange-50 p-4 text-sm">
             <p className="font-semibold text-gray-900">{job.job_title}</p>
@@ -94,26 +103,38 @@ export default function IJPReferralForm({ job, onClose, onSubmitted }) {
             <p className="text-gray-600">Location: {job.location || "Not specified"}</p>
             <p className="text-gray-600">Employment: {isInternship ? "Internship" : "Full Time"}</p>
           </div>
+
           <label className="block text-sm font-medium text-gray-700">Candidate Name *
             <input name="candidate_name" value={formData.candidate_name} onChange={handleChange} disabled={submitting} className={`${inputClass} mt-1.5`} required placeholder="Candidate full name" />
           </label>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="block text-sm font-medium text-gray-700">Candidate Email
-              <input type="email" name="candidate_email" value={formData.candidate_email} onChange={handleChange} disabled={submitting} className={`${inputClass} mt-1.5`} placeholder="Email address" />
-            </label>
-            <label className="block text-sm font-medium text-gray-700">Candidate Phone
-              <input name="candidate_phone" value={formData.candidate_phone} onChange={handleChange} disabled={submitting} className={`${inputClass} mt-1.5`} maxLength={20} placeholder="Phone number" />
-            </label>
+
+          <div>
+            <p className="mb-2 text-sm font-medium text-gray-700">Candidate Contact Details <span className="text-red-500">*</span></p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="block text-sm font-medium text-gray-700">Candidate Email
+                <input type="email" name="candidate_email" value={formData.candidate_email} onChange={handleChange} disabled={submitting} className={`${inputClass} mt-1.5`} placeholder="Email address" />
+              </label>
+              <label className="block text-sm font-medium text-gray-700">Candidate Phone
+                <input name="candidate_phone" value={formData.candidate_phone} onChange={handleChange} disabled={submitting} className={`${inputClass} mt-1.5`} maxLength={20} placeholder="Phone number" />
+              </label>
+            </div>
+            <p className={`mt-1.5 text-xs ${hasContact ? "text-gray-500" : "text-red-500"}`}>
+              * At least one contact detail is mandatory (Email or Phone).
+            </p>
+            {!validEmail && <p className="mt-1 text-xs text-red-500">Please enter a valid email address.</p>}
           </div>
+
           <label className="block text-sm font-medium text-gray-700">Candidate Type *
             <select name="candidate_type" value={formData.candidate_type} onChange={handleChange} disabled={submitting} className={`${inputClass} mt-1.5`} required>
               {typeOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
           </label>
+
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
             <p className="font-medium text-gray-700">Referral Category</p>
             <p className="mt-1 text-gray-600">Direct Role Fit (automatically selected)</p>
           </div>
+
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
             <p className="font-medium text-gray-700">Assigned SBU Reviewers</p>
             {reviewers.length ? (
@@ -122,16 +143,19 @@ export default function IJPReferralForm({ job, onClose, onSubmitted }) {
               </div>
             ) : <p className="mt-1 text-gray-500">Reviewers will be assigned automatically based on the job SBU.</p>}
           </div>
+
           <label className="block text-sm font-medium text-gray-700">Upload Candidate CV *
             <input type="file" name="cv" accept=".pdf,.doc,.docx" onChange={handleChange} disabled={submitting} className={`${inputClass} mt-1.5`} required />
             <span className="mt-1 block text-xs font-normal text-gray-500">PDF, DOC or DOCX. Maximum 5 MB.</span>
           </label>
+
           <label className="block text-sm font-medium text-gray-700">Additional Comments
             <textarea name="additional_comment" value={formData.additional_comment} onChange={handleChange} disabled={submitting} rows={3} className={`${inputClass} mt-1.5`} placeholder="Why is this candidate suitable for the role?" />
           </label>
+
           <div className="flex justify-end gap-3 border-t pt-4">
             <button type="button" onClick={onClose} disabled={submitting} className="rounded-lg bg-gray-200 px-5 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-300 disabled:opacity-50">Cancel</button>
-            <button type="submit" disabled={submitting} className="rounded-lg bg-[#F6490D] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#d63f09] disabled:opacity-50">{submitting ? "Submitting..." : "Submit Referral"}</button>
+            <button type="submit" disabled={!canSubmit} className="rounded-lg bg-[#F6490D] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#d63f09] disabled:cursor-not-allowed disabled:opacity-50">{submitting ? "Submitting..." : "Submit Referral"}</button>
           </div>
         </form>
       </div>
