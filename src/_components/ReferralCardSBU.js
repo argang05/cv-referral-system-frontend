@@ -429,7 +429,7 @@ export default function ReferralCardSBU({ referral, emp_id }) {
                   <option value="CONSIDERED">Accept</option>
                   <option value="REJECTED">Reject</option>
                 </select>
-                <textarea value={comment} onChange={e => setComment(e.target.value)} className="w-full rounded border p-2" placeholder="Add review comment..." rows={4} required />
+                <textarea value={comment} onChange={e => setComment(e.target.value)} className="w-full rounded border p-2" placeholder="Add reason for accept or reject..." rows={4} required />
                 <button onClick={handleReviewSubmit} disabled={loading || refreshing} className="cursor-pointer rounded bg-[#F6490D] px-4 py-2 text-white hover:bg-orange-600 disabled:opacity-60">
                   {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Submit Review'}
                 </button>

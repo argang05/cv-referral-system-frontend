@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import ReferralProgressBar from './ReferralProgressBar';
 import UpdateReferralForm from './UpdateReferralForm';
-import { FileText, Briefcase, CheckCircle, X, Ban, Loader2, GraduationCap, ShieldCheck, Clock, Lock, AlertCircle, Save, UserCheck, ClipboardCheck, CalendarDays, CheckCircle2, XCircle, UserRound, ExternalLink, History } from 'lucide-react';
+import { FileText, Briefcase, CheckCircle, X, Ban, Loader2, GraduationCap, ShieldCheck, Clock, Lock, AlertCircle, Save, UserCheck, ClipboardCheck, CheckCircle2, XCircle, ExternalLink, History, ChevronDown } from 'lucide-react';
 
 const statusMap = {
   PENDING_REVIEW: { color: 'text-purple-500', label: 'Submitted', icon: FileText },
@@ -40,7 +40,7 @@ const offerOutcomeLabels = {
   JOINED: 'Joined'
 };
 
-const formatDate = (value) => {
+const formatDate = value => {
   if (!value) return 'N/A';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('en-IN', {
@@ -48,7 +48,7 @@ const formatDate = (value) => {
   });
 };
 
-const formatJoiningDate = (value) => {
+const formatJoiningDate = value => {
   if (!value) return 'N/A';
   const parts = String(value).split('-');
   if (parts.length !== 3) return String(value);
@@ -59,12 +59,13 @@ const formatJoiningDate = (value) => {
 };
 
 const formatAcademicValue = (value, suffix) => value === null || value === undefined || value === '' ? 'N/A' : `${value}${suffix}`;
+const reviewerName = reviewer => typeof reviewer === 'string' ? reviewer : reviewer?.name || 'Unknown Reviewer';
 
 function Detail({ label, value }) {
   return (
     <div className="min-w-0">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">{label}</p>
-      <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">{value ?? 'N/A'}</p>
+      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
+      <p className="break-words whitespace-pre-wrap text-sm text-gray-800">{value === null || value === undefined || value === '' ? 'N/A' : value}</p>
     </div>
   );
 }
@@ -72,10 +73,85 @@ function Detail({ label, value }) {
 function Section({ title, icon: Icon, children }) {
   return (
     <section className="mt-5 border-t border-gray-200 pt-5">
-      <h3 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-4">
+      <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-gray-900">
         <Icon size={19} className="text-[#F6490D]" />{title}
       </h3>
       {children}
+    </section>
+  );
+}
+
+function SBUReviewHistory({ history }) {
+  const [expanded, setExpanded] = useState(false);
+  const reviews = Array.isArray(history) ? [...history].sort((a, b) => {
+    const dateDifference = new Date(b.reviewed_at || 0).getTime() - new Date(a.reviewed_at || 0).getTime();
+    return dateDifference || Number(b.id || 0) - Number(a.id || 0);
+  }) : [];
+
+  return (
+    <section className="mt-5 border-t border-gray-200 pt-5">
+      <button type="button" onClick={() => setExpanded(prev => !prev)} aria-expanded={expanded} aria-controls="sbu-review-history-content" className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg p-2 text-left transition-colors hover:bg-orange-50/60">
+        <div className="flex min-w-0 items-center gap-2">
+          <History size={19} className="shrink-0 text-[#F6490D]" />
+          <h3 className="text-base font-semibold text-gray-900">Complete SBU Review History</h3>
+          <span className="shrink-0 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-xs font-semibold text-[#F6490D]">{reviews.length}</span>
+        </div>
+        <ChevronDown size={19} className={`shrink-0 text-gray-500 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      {expanded && (
+        <div id="sbu-review-history-content" className="mt-4 px-1">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-gray-600">All recorded SBU reviewer decisions for this referral.</p>
+            <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-[#F6490D]">
+              {reviews.length} {reviews.length === 1 ? 'Review' : 'Reviews'}
+            </span>
+          </div>
+
+          {reviews.length === 0 ? (
+            <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <Clock size={19} className="mt-0.5 shrink-0 text-amber-600" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">No SBU Reviews Yet</p>
+                <p className="mt-1 text-xs text-amber-700">The review history will appear here once an assigned SBU reviewer submits a decision.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="relative ml-2 border-l-2 border-orange-200 pl-5">
+              {reviews.map((review, index) => {
+                const considered = review.decision === 'CONSIDERED';
+                const rejected = review.decision === 'REJECTED';
+                const decisionLabel = considered ? 'Considered for HR Evaluation' : rejected ? 'Rejected by SBU' : review.decision || 'Decision Not Available';
+                const decisionClass = considered ? 'border-green-200 bg-green-50 text-green-700' : rejected ? 'border-red-200 bg-red-50 text-red-700' : 'border-gray-200 bg-gray-50 text-gray-700';
+                const Icon = considered ? CheckCircle2 : rejected ? XCircle : Clock;
+
+                return (
+                  <div key={review.id ?? index} className={`relative mb-4 rounded-xl border p-4 shadow-sm last:mb-0 ${index === 0 ? 'border-orange-200 bg-orange-50/30' : 'border-gray-200 bg-white'}`}>
+                    <span className="absolute -left-[29px] top-5 h-3.5 w-3.5 rounded-full border-[3px] border-white bg-[#F6490D]" />
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${decisionClass}`}>
+                        <Icon size={14} />{decisionLabel}
+                      </span>
+                      {index === 0 && <span className="rounded-full bg-[#F6490D] px-2.5 py-1 text-[10px] font-semibold text-white">LATEST REVIEW</span>}
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <Detail label="Reviewed By" value={reviewerName(review.reviewed_by)} />
+                      <Detail label="Reviewed On" value={formatDate(review.reviewed_at)} />
+                    </div>
+                    {review.reviewed_by?.email && <p className="mt-2 break-all text-xs text-gray-500">{review.reviewed_by.email}</p>}
+                    <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 p-3">
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Reason / Review Comment</p>
+                      <p className="whitespace-pre-wrap break-words text-sm text-gray-800">{review.comment?.trim() || 'No comment provided.'}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <p className="mt-3 flex items-center gap-1.5 text-xs text-gray-500"><Lock size={13} />Review history is read-only and cannot be modified by the referrer.</p>
+        </div>
+      )}
     </section>
   );
 }
@@ -86,6 +162,7 @@ function OfferReport({ evaluation }) {
   const outcome = evaluation.offer_outcome;
   const outcomeLabel = offerOutcomeLabels[outcome] || 'Not recorded';
   const outcomeColor = outcome === 'JOINED' ? 'bg-green-100 text-green-700 border-green-200' : outcome === 'OFFER_DECLINED' || outcome === 'DID_NOT_JOIN' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-amber-100 text-amber-700 border-amber-200';
+
   return (
     <Section title="Offer & Joining Report" icon={ClipboardCheck}>
       <div className="rounded-xl border border-orange-200 bg-orange-50/40 p-4">
@@ -95,27 +172,27 @@ function OfferReport({ evaluation }) {
             {outcome ? outcomeLabel : offerReleased ? 'Awaiting Outcome' : 'Offer Not Released'}
           </span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Detail label="HR Selection Decision" value="Selected" />
           <Detail label="Offer Released" value={offerReleased ? 'Yes' : 'No'} />
-          <Detail label="Offer Outcome" value={offerReleased ? (outcome ? outcomeLabel : 'Awaiting Outcome') : 'Not applicable'} />
+          <Detail label="Offer Outcome" value={offerReleased ? outcome ? outcomeLabel : 'Awaiting Outcome' : 'Not applicable'} />
           {outcome === 'JOINED' && <Detail label="Date of Joining" value={formatJoiningDate(evaluation.joining_date)} />}
         </div>
         {outcome === 'JOINED' && (
           <div className="mt-4 flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-            <CheckCircle2 size={18} className="shrink-0 mt-0.5" />
+            <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
             <p>Candidate successfully joined on <strong>{formatJoiningDate(evaluation.joining_date)}</strong>.</p>
           </div>
         )}
         {outcome === 'OFFER_DECLINED' && (
           <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-            <XCircle size={18} className="shrink-0 mt-0.5" />
+            <XCircle size={18} className="mt-0.5 shrink-0" />
             <p>The candidate was selected by HR but declined the employment offer.</p>
           </div>
         )}
         {outcome === 'DID_NOT_JOIN' && (
           <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-            <XCircle size={18} className="shrink-0 mt-0.5" />
+            <XCircle size={18} className="mt-0.5 shrink-0" />
             <p>The candidate was selected and an offer was released, but the candidate did not join.</p>
           </div>
         )}
@@ -128,7 +205,8 @@ export default function ReferralCard({ referral, currentEmpId, updateReferralInL
   const [showModal, setShowModal] = useState(false);
   const [showUpdateForm, setShowUpdateForm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const isReferrer = String(referral.referrer?.emp_id) === String(currentEmpId);
+
+  const isReferrer = currentEmpId != null && String(referral.referrer?.emp_id) === String(currentEmpId);
   const isFresher = ['INTERN_FRESHER', 'FULL_TIME_FRESHER'].includes(referral.candidate_type);
   const academicStatus = referral.academic_details_status;
   const isAcademicCompleted = isFresher && academicStatus === 'COMPLETED';
@@ -144,7 +222,7 @@ export default function ReferralCard({ referral, currentEmpId, updateReferralInL
   const statusConfig = statusMap[referral.current_status] || { color: 'text-gray-500', label: 'Unknown', icon: FileText };
   const StatusIcon = statusConfig.icon;
   const statusLabel = referral.current_status === 'REJECTED' && referral.rejection_stage === 'HR' ? 'Rejected by HR' : statusConfig.label;
-  const hasBeenReviewed = ['CONSIDERED', 'REJECTED', 'FINAL_ACCEPTED', 'FINAL_REJECTED'].includes(referral.current_status);
+  const hasBeenReviewed = ['CONSIDERED', 'REJECTED', 'FINAL_ACCEPTED', 'FINAL_REJECTED'].includes(referral.current_status) || Boolean(referral.review) || Boolean(referral.review_history?.length);
   const offerStatus = evaluation?.offer_outcome ? offerOutcomeLabels[evaluation.offer_outcome] : evaluation?.offer_released ? 'Offer Released' : 'Offer Not Released';
 
   const handleDeleteReferral = async () => {
@@ -173,21 +251,21 @@ export default function ReferralCard({ referral, currentEmpId, updateReferralInL
 
   return (
     <>
-      <div className="bg-white shadow rounded-xl p-4 border border-gray-200 hover:shadow-lg transition cursor-pointer" onClick={() => setShowModal(true)}>
-        <div className="flex justify-between items-center gap-3">
+      <div className="cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow transition hover:shadow-lg" onClick={() => setShowModal(true)}>
+        <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="font-semibold text-lg truncate">{referral.candidate_name}</h3>
+            <h3 className="truncate text-lg font-semibold">{referral.candidate_name}</h3>
             <p className="text-sm text-gray-500">{candidateTypeLabels[referral.candidate_type] || referral.candidate_type}</p>
           </div>
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
             <span className={`flex items-center gap-1 text-sm font-medium ${statusConfig.color}`}>
               <StatusIcon size={16} />{statusLabel}
             </span>
             {isSelected && (
-              <span className={`text-xs font-semibold rounded-full px-2.5 py-1 border ${
-                evaluation.offer_outcome === 'JOINED' ? 'bg-green-50 text-green-700 border-green-200' :
-                ['OFFER_DECLINED', 'DID_NOT_JOIN'].includes(evaluation.offer_outcome) ? 'bg-red-50 text-red-700 border-red-200' :
-                'bg-amber-50 text-amber-700 border-amber-200'
+              <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                evaluation.offer_outcome === 'JOINED' ? 'border-green-200 bg-green-50 text-green-700' :
+                ['OFFER_DECLINED', 'DID_NOT_JOIN'].includes(evaluation.offer_outcome) ? 'border-red-200 bg-red-50 text-red-700' :
+                'border-amber-200 bg-amber-50 text-amber-700'
               }`}>{offerStatus}</span>
             )}
           </div>
@@ -195,13 +273,13 @@ export default function ReferralCard({ referral, currentEmpId, updateReferralInL
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
-          <div className="bg-white w-full max-w-3xl p-6 rounded-xl relative shadow-lg max-h-[90vh] overflow-y-auto">
-            <button onClick={() => setShowModal(false)} className="cursor-pointer absolute top-3 right-3 text-gray-600 hover:text-black" aria-label="Close referral details"><X size={20} /></button>
-            <h2 className="text-xl font-bold mb-2 pr-8">{referral.candidate_name}</h2>
-            <p className="text-gray-500 mb-4">{candidateTypeLabels[referral.candidate_type] || referral.candidate_type}</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
+            <button onClick={() => setShowModal(false)} className="absolute right-3 top-3 cursor-pointer text-gray-600 hover:text-black" aria-label="Close referral details"><X size={20} /></button>
+            <h2 className="mb-2 pr-8 text-xl font-bold">{referral.candidate_name}</h2>
+            <p className="mb-4 text-gray-500">{candidateTypeLabels[referral.candidate_type] || referral.candidate_type}</p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:grid-cols-2">
               <Detail label="Submitted At" value={formatDate(referral.submitted_at)} />
               <Detail label="Candidate Email" value={referral.candidate_email} />
               <Detail label="Candidate Phone" value={referral.candidate_phone} />
@@ -211,6 +289,7 @@ export default function ReferralCard({ referral, currentEmpId, updateReferralInL
               <Detail label="Referral Category" value={referralReasonLabels[referral.referral_reason_type]} />
               <Detail label="Additional Comment" value={referral.additional_comment} />
             </div>
+
             {referral.cv_url && (
               <a href={referral.cv_url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:underline">
                 <FileText size={16} /> Download CV <ExternalLink size={14} />
@@ -225,9 +304,10 @@ export default function ReferralCard({ referral, currentEmpId, updateReferralInL
                   {isAcademicDraft && <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"><Save size={14} /> Draft Saved by HR</span>}
                   {isAcademicPending && <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700"><Clock size={14} /> Awaiting HR</span>}
                 </div>
+
                 {isAcademicCompleted ? (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                       {[
                         { label: 'Class 10 Percentage', value: formatAcademicValue(tenthPercentage, '%') },
                         { label: 'Class 12 Percentage', value: formatAcademicValue(twelfthPercentage, '%') },
@@ -239,16 +319,23 @@ export default function ReferralCard({ referral, currentEmpId, updateReferralInL
                         </div>
                       ))}
                     </div>
-                    <div className="mt-3 flex items-start gap-2 text-xs text-gray-500"><Lock size={14} className="mt-0.5 shrink-0" /><p>These academic records have been finalized by HR and cannot be modified by the referrer.</p></div>
+                    <div className="mt-3 flex items-start gap-2 text-xs text-gray-500">
+                      <Lock size={14} className="mt-0.5 shrink-0" />
+                      <p>These academic records have been finalized by HR and cannot be modified by the referrer.</p>
+                    </div>
                     {referral.academic_details_updated_at && <p className="mt-2 text-xs text-gray-500">Finalized on: {formatDate(referral.academic_details_updated_at)}</p>}
                   </>
                 ) : (
-                  <div className={`rounded-lg border p-4 ${isAcademicDraft ? 'bg-blue-50 border-blue-200' : 'bg-amber-50 border-amber-200'}`}>
+                  <div className={`rounded-lg border p-4 ${isAcademicDraft ? 'border-blue-200 bg-blue-50' : 'border-amber-200 bg-amber-50'}`}>
                     <div className="flex items-start gap-3">
                       {isAcademicDraft ? <Save size={19} className="mt-0.5 shrink-0 text-blue-600" /> : <AlertCircle size={19} className="mt-0.5 shrink-0 text-amber-600" />}
                       <div>
-                        <p className={`text-sm font-semibold ${isAcademicDraft ? 'text-blue-800' : 'text-amber-800'}`}>{isAcademicDraft ? 'Academic Details Under Preparation' : 'Academic Verification Pending'}</p>
-                        <p className={`mt-1 text-xs ${isAcademicDraft ? 'text-blue-700' : 'text-amber-700'}`}>{isAcademicDraft ? 'HR has saved the academic information as a draft. The records will become available after HR finalizes and locks them.' : 'HR will contact the candidate and collect the required academic information. SBU review will begin once HR finalizes these records.'}</p>
+                        <p className={`text-sm font-semibold ${isAcademicDraft ? 'text-blue-800' : 'text-amber-800'}`}>
+                          {isAcademicDraft ? 'Academic Details Under Preparation' : 'Academic Verification Pending'}
+                        </p>
+                        <p className={`mt-1 text-xs ${isAcademicDraft ? 'text-blue-700' : 'text-amber-700'}`}>
+                          {isAcademicDraft ? 'HR has saved the academic information as a draft. The records will become available after HR finalizes and locks them.' : 'HR will contact the candidate and collect the required academic information. SBU review will begin once HR finalizes these records.'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -258,9 +345,9 @@ export default function ReferralCard({ referral, currentEmpId, updateReferralInL
 
             <Section title="Latest SBU Review" icon={UserCheck}>
               {referral.review?.decision ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:grid-cols-2">
                   <Detail label="SBU Decision" value={referral.review.decision === 'CONSIDERED' ? 'Considered for HR Evaluation' : 'Rejected'} />
-                  <Detail label="Reviewed By" value={referral.review.reviewed_by} />
+                  <Detail label="Reviewed By" value={reviewerName(referral.review.reviewed_by)} />
                   <Detail label="Reviewed On" value={formatDate(referral.review.reviewed_at)} />
                   <Detail label="Reviewer Comments" value={referral.review.comment} />
                 </div>
@@ -272,20 +359,22 @@ export default function ReferralCard({ referral, currentEmpId, updateReferralInL
               )}
             </Section>
 
+            {isReferrer && <SBUReviewHistory history={referral.review_history} />}
+
             <Section title="Final HR Evaluation" icon={Briefcase}>
               {evaluation?.evaluation_status === 'COMPLETED' ? (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:grid-cols-2">
                     <Detail label="Final Decision" value={isSelected ? 'Selected' : isHrRejected ? 'Rejected' : evaluation.status} />
                     <Detail label="Rejection Stage" value={isHrRejected ? stageLabels[evaluation.stage] || evaluation.stage || 'N/A' : 'Not applicable'} />
-                    <Detail label="Last Updated By" value={evaluation.updated_by} />
+                    <Detail label="Last Updated By" value={reviewerName(evaluation.updated_by)} />
                     <Detail label="Last Updated On" value={formatDate(evaluation.updated_at)} />
                     <Detail label="Finalized By" value={evaluation.finalized_by?.name} />
                     <Detail label="Finalized On" value={formatDate(evaluation.finalized_at)} />
                     <Detail label="Evaluation Status" value="Completed & Permanently Locked" />
                     <Detail label="Final HR Comment" value={evaluation.comment} />
                   </div>
-                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-xs font-medium text-green-800">
+                  <div className="mt-3 flex items items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-xs font-medium text-green-800">
                     <Lock size={15} className="shrink-0" /> This HR evaluation has been finalized and permanently locked.
                   </div>
                 </>

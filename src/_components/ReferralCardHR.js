@@ -41,6 +41,9 @@ const HR_STAGE_LABELS = {
   OTHER: 'Other Reason'
 };
 
+const IN_PROGRESS_STAGES = ['TEST', 'T1', 'T2', 'T3'];
+const REJECTION_STAGES = ['TEST', 'T1', 'T2', 'T3', 'HR', 'OTHER'];
+
 const HR_STATUS_LABELS = {
   IN_PROGRESS: 'In Progress',
   ACCEPTED: 'Selected',
@@ -134,6 +137,15 @@ function getStatusInfo(referral) {
   }
   if (referral?.hr_evaluation) {
     const evaluation = referral.hr_evaluation;
+    if (evaluation.status === 'IN_PROGRESS') {
+      return {
+        ...config,
+        label: evaluation.stage
+          ? `In Progress — ${HR_STAGE_LABELS[evaluation.stage] || evaluation.stage}`
+          : 'HR Evaluation In Progress',
+        icon: Briefcase, color: 'text-blue-600'
+      };
+    }
     if (evaluation.status === 'ACCEPTED' && evaluation.offer_released && !evaluation.offer_outcome) {
       return { ...config, label: 'Offer Released — Awaiting Outcome', icon: Briefcase, color: 'text-amber-600' };
     }
@@ -315,13 +327,19 @@ export default function ReferralCardHR({ referral }) {
   );
   const showAcademicDetails = isAcademicCompleted && hasAcademicValues;
 
+  // Form validation states
+  const validStage = status === 'IN_PROGRESS'
+    ? IN_PROGRESS_STAGES.includes(stage)
+    : status === 'REJECTED'
+      ? REJECTION_STAGES.includes(stage)
+      : status === 'ACCEPTED';
+  const validComment = Boolean(comment.trim());
+  const canSaveDraft = Boolean(status && validStage && validComment);
   const canFinalize = status === 'REJECTED'
-    ? Boolean(stage && comment.trim())
+    ? Boolean(validStage && validComment)
     : status === 'ACCEPTED'
       ? Boolean(
-          comment.trim() &&
-          offerReleased &&
-          offerOutcome &&
+          validComment && offerReleased && OFFER_OUTCOME_LABELS[offerOutcome] &&
           (offerOutcome !== 'JOINED' || joiningDate)
         )
       : false;
@@ -371,12 +389,15 @@ export default function ReferralCardHR({ referral }) {
 
   const handleStatusChange = (nextStatus) => {
     setStatus(nextStatus);
-    if (nextStatus !== 'REJECTED') setStage('');
+    if (nextStatus === 'IN_PROGRESS' && !IN_PROGRESS_STAGES.includes(stage)) setStage('');
+    if (nextStatus === 'REJECTED' && !REJECTION_STAGES.includes(stage)) setStage('');
+    if (nextStatus === 'ACCEPTED' || !nextStatus) setStage('');
     if (nextStatus !== 'ACCEPTED') {
       setOfferReleased(false);
       setOfferOutcome('');
       setJoiningDate('');
     }
+    setShowFinalizeWarning(false);
   };
 
   const handleOfferReleasedChange = (checked) => {
@@ -413,12 +434,16 @@ export default function ReferralCardHR({ referral }) {
       toast.error('Please enter an HR evaluation comment.');
       return false;
     }
-    if (status === 'REJECTED' && !stage) {
-      toast.error('Please select the rejection stage.');
+    if (status === 'IN_PROGRESS' && !IN_PROGRESS_STAGES.includes(stage)) {
+      toast.error('Please select a valid current recruitment stage.');
+      return false;
+    }
+    if (status === 'REJECTED' && !REJECTION_STAGES.includes(stage)) {
+      toast.error('Please select a valid rejection stage.');
       return false;
     }
     if (action === 'FINALIZE' && status === 'IN_PROGRESS') {
-      toast.error('Please select either Selected or Rejected before finalizing.');
+      toast.error('An In Progress evaluation cannot be finalized. Select either Selected or Rejected.');
       return false;
     }
     if (status === 'ACCEPTED') {
@@ -460,7 +485,7 @@ export default function ReferralCardHR({ referral }) {
         referral_id: localReferral.id,
         emp_id: user.emp_id,
         status,
-        stage: status === 'REJECTED' ? stage : '',
+        stage: ['IN_PROGRESS', 'REJECTED'].includes(status) ? stage : '',
         comment: comment.trim(),
         action,
         expected_version: localReferral.hr_evaluation_version ?? 0,
@@ -745,10 +770,14 @@ export default function ReferralCardHR({ referral }) {
                     )}
                   </div>
                   <div className="space-y-2 rounded-lg border border-purple-200 bg-purple-50 p-4">
-                    {/* <DetailRow label="Stage">{HR_STAGE_LABELS[localReferral.hr_evaluation.stage] || 'N/A'}</DetailRow> */}
                     <DetailRow label="Status">
                       {HR_STATUS_LABELS[localReferral.hr_evaluation.status] || localReferral.hr_evaluation.status}
                     </DetailRow>
+                    {localReferral.hr_evaluation.stage && (
+                      <DetailRow label={localReferral.hr_evaluation.status === 'IN_PROGRESS' ? 'Current Recruitment Stage' : 'Rejection Stage'}>
+                        {HR_STAGE_LABELS[localReferral.hr_evaluation.stage] || localReferral.hr_evaluation.stage}
+                      </DetailRow>
+                    )}
                     <DetailRow label="Comment">{localReferral.hr_evaluation.comment || 'N/A'}</DetailRow>
                     <DetailRow label="Updated At">{formatDate(localReferral.hr_evaluation.updated_at)}</DetailRow>
                     <DetailRow label="Updated By">{getEmployeeName(localReferral.hr_evaluation.updated_by)}</DetailRow>
@@ -798,7 +827,11 @@ export default function ReferralCardHR({ referral }) {
                             <HrStatusBadge status={entry.status} />
                           </div>
                           <div className="mt-3 space-y-2">
-                            {/* <DetailRow label="Stage">{HR_STAGE_LABELS[entry.stage] || 'N/A'}</DetailRow> */}
+                            {entry.stage && (
+                              <DetailRow label={entry.status === 'IN_PROGRESS' ? 'Current Recruitment Stage' : 'Rejection Stage'}>
+                                {HR_STAGE_LABELS[entry.stage] || entry.stage}
+                              </DetailRow>
+                            )}
                             <DetailRow label="Comment">{entry.comment || 'N/A'}</DetailRow>
                             <DetailRow label="Action">
                               {entry.action === 'FINALIZE' || entry.is_locked ? 'Finalized & Locked' : 'Draft Saved'}
@@ -842,8 +875,9 @@ export default function ReferralCardHR({ referral }) {
                     <p className="font-semibold">How this workflow works</p>
                     <p className="mt-1">
                       Save as Draft to continue editing later. Any authorized HR employee can update an unlocked evaluation.
+                      In Progress evaluations require a recruitment stage and can only be saved as drafts.
                       For selected candidates, record offer release and the final outcome before using Finalize & Lock.
-                      Rejected candidates can be finalized immediately after entering the rejection details.
+                      Rejected candidates can be finalized after entering the rejection details.
                     </p>
                   </div>
 
@@ -851,13 +885,13 @@ export default function ReferralCardHR({ referral }) {
                     {/* HR Status */}
                     <div>
                       <label htmlFor={`hr-status-${localReferral.id}`} className="mb-2 block text-sm font-medium">
-                        HR Evaluation Status
+                        HR Evaluation Status <span className="text-red-600">*</span>
                       </label>
                       <select id={`hr-status-${localReferral.id}`}
                         className="w-full rounded border border-gray-300 p-2"
                         value={status}
                         onChange={(event) => handleStatusChange(event.target.value)}
-                        disabled={submitting || refreshing}>
+                        disabled={submitting || refreshing} required>
                         <option value="">-- Select Status --</option>
                         <option value="IN_PROGRESS">In Progress</option>
                         <option value="ACCEPTED">Selected</option>
@@ -865,29 +899,37 @@ export default function ReferralCardHR({ referral }) {
                       </select>
                     </div>
 
-                    {/* Rejection Stage */}
-                    {status === 'REJECTED' && (
+                    {/* Current Recruitment Stage / Rejection Stage */}
+                    {(status === 'IN_PROGRESS' || status === 'REJECTED') && (
                       <div>
                         <label htmlFor={`hr-stage-${localReferral.id}`} className="mb-2 block text-sm font-medium">
-                          Rejection Stage
+                          {status === 'IN_PROGRESS' ? 'Current Recruitment Stage' : 'Rejection Stage'}
+                          <span className="ml-1 text-red-600">*</span>
                         </label>
                         <select id={`hr-stage-${localReferral.id}`}
                           className="w-full rounded border border-gray-300 p-2"
                           value={stage}
                           onChange={(event) => setStage(event.target.value)}
-                          disabled={submitting || refreshing}>
-                          <option value="">-- Select Rejection Stage --</option>
-                          {Object.entries(HR_STAGE_LABELS).map(([value, label]) => (
-                            <option key={value} value={value}>{label}</option>
+                          disabled={submitting || refreshing} required>
+                          <option value="">
+                            {status === 'IN_PROGRESS' ? '-- Select Current Recruitment Stage --' : '-- Select Rejection Stage --'}
+                          </option>
+                          {(status === 'IN_PROGRESS' ? IN_PROGRESS_STAGES : REJECTION_STAGES).map((value) => (
+                            <option key={value} value={value}>{HR_STAGE_LABELS[value]}</option>
                           ))}
                         </select>
+                        {status === 'IN_PROGRESS' && (
+                          <p className="mt-2 text-xs text-blue-700">
+                            Select the candidate's current recruitment stage. This evaluation can be saved as a draft but cannot be finalized.
+                          </p>
+                        )}
                       </div>
                     )}
 
                     {/* HR Comment */}
                     <div>
                       <label htmlFor={`hr-comment-${localReferral.id}`} className="mb-2 block text-sm font-medium">
-                        HR Evaluation Comment
+                        HR Evaluation Comment <span className="text-red-600">*</span>
                       </label>
                       <textarea id={`hr-comment-${localReferral.id}`}
                         className="w-full rounded border border-gray-300 p-2"
@@ -895,13 +937,13 @@ export default function ReferralCardHR({ referral }) {
                         value={comment}
                         onChange={(event) => setComment(event.target.value)}
                         disabled={submitting || refreshing}
-                        placeholder="Enter evaluation details..." />
+                        placeholder="Enter evaluation details..." required />
                       <div className="mt-2 rounded-lg bg-gray-50 p-3 text-xs leading-relaxed text-gray-600">
                         <p className="font-semibold">Details to fill:</p>
                         <p className="mt-1"><strong>If Rejected:</strong> Select the rejection stage and provide the reason for rejection.</p>
                         <p className="mt-1"><strong>If Selected — Full Time:</strong> Enter designation, work location, and band. Record the joining date separately if the candidate joins.</p>
                         <p className="mt-1"><strong>If Selected — Intern:</strong> Enter designation, internship period, and internship location.</p>
-                        <p className="mt-1"><strong>If In Progress:</strong> Provide the current recruitment progress or evaluation notes.</p>
+                        <p className="mt-1"><strong>If In Progress:</strong> Select the current recruitment stage and provide progress or evaluation notes.</p>
                       </div>
                     </div>
 
@@ -1001,14 +1043,16 @@ export default function ReferralCardHR({ referral }) {
                     {/* Save / Finalize Actions */}
                     <div className="flex flex-wrap items-center gap-3 pt-2">
                       <button type="button" onClick={() => saveEvaluation('SAVE_DRAFT')}
-                        disabled={submitting || refreshing}
+                        disabled={submitting || refreshing || isHrLocked || !canSaveDraft}
                         className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60">
                         {submitting ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
                         Save as Draft
                       </button>
                       <button type="button" onClick={handleFinalizeClick}
-                        disabled={submitting || refreshing || !canFinalize}
-                        title={!canFinalize ? 'Complete all required finalization fields first.' : 'Finalize and permanently lock'}
+                        disabled={submitting || refreshing || isHrLocked || !canFinalize}
+                        title={status === 'IN_PROGRESS'
+                          ? 'In Progress evaluations cannot be finalized.'
+                          : !canFinalize ? 'Complete all required finalization fields first.' : 'Finalize and permanently lock'}
                         className="flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40">
                         <Lock size={17} /> Finalize & Lock
                       </button>
@@ -1018,6 +1062,11 @@ export default function ReferralCardHR({ referral }) {
                         Close
                       </button>
                     </div>
+                    {status === 'IN_PROGRESS' && (
+                      <p className="text-xs text-blue-700">
+                        In Progress evaluations can be saved as drafts. Finalize & Lock is unavailable until the status changes to Selected or Rejected.
+                      </p>
+                    )}
                     {!canFinalize && status === 'ACCEPTED' && (
                       <p className="text-xs text-amber-700">
                         Finalization becomes available after the offer is released, an outcome is selected,
@@ -1091,7 +1140,7 @@ export default function ReferralCardHR({ referral }) {
                   Cancel
                 </button>
                 <button type="button" onClick={() => saveEvaluation('FINALIZE')}
-                  disabled={submitting || !canFinalize}
+                  disabled={submitting || refreshing || isHrLocked || !canFinalize}
                   className="flex cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60">
                   {submitting ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
                   Confirm & Lock
