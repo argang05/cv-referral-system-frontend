@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, X, ChevronDown, UserRound, LogOut, BriefcaseBusiness, ClipboardCheck, GraduationCap, ShieldCheck, LayoutDashboard, Users, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import IJPNotifications from "@/_components/IJPNotifications";
+import Notifications from "@/_components/Notifications";
 
 export default function Header() {
   const { user, logout, loggingOut } = useUser();
@@ -15,7 +15,6 @@ export default function Header() {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [isSbuReviewer, setIsSbuReviewer] = useState(false);
   const headerRef = useRef(null);
-
   const adminEmails = ["abhishek.ganguly@tor.ai", "admin2@gmail.com", "admin3@gmail.com"];
   const isAdmin = adminEmails.some(email => email.toLowerCase() === (user?.email || "").trim().toLowerCase());
 
@@ -28,11 +27,7 @@ export default function Header() {
         const response = await axios.get("/api/departments/");
         const departments = Array.isArray(response.data) ? response.data : response.data?.results || [];
         const email = user.email.trim().toLowerCase();
-        const found = departments.some(department =>
-          (Array.isArray(department.reviewers) ? department.reviewers : []).some(reviewer =>
-            typeof reviewer?.email === "string" && reviewer.email.trim().toLowerCase() === email
-          )
-        );
+        const found = departments.some(department => (Array.isArray(department.reviewers) ? department.reviewers : []).some(reviewer => typeof reviewer?.email === "string" && reviewer.email.trim().toLowerCase() === email));
         if (!cancelled) setIsSbuReviewer(found);
       } catch (error) {
         if (!cancelled) {
@@ -74,7 +69,6 @@ export default function Header() {
   const canReviewCV = user?.role === "REVIEWER" || user?.role === "HR" || isSbuReviewer;
   const canEvaluateHR = Boolean(user?.is_hr);
   const canManageAcademicDetails = canEvaluateHR;
-
   const recruitmentLinks = [
     ...(canReviewCV ? [{ label: "CV for Review", href: "/review-cv", icon: ClipboardCheck, description: "Review referred candidates" }] : []),
     ...(canManageAcademicDetails ? [{ label: "Academic Details", href: "/academic-details", icon: GraduationCap, description: "Manage candidate academics" }] : []),
@@ -86,7 +80,6 @@ export default function Header() {
     if (href === "/") return pathname === "/";
     return pathname === href || pathname.startsWith(`${href}/`);
   };
-
   const recruitmentActive = recruitmentLinks.some(link => isActive(link.href));
   const toggleDropdown = name => setActiveDropdown(current => current === name ? null : name);
 
@@ -100,18 +93,9 @@ export default function Header() {
     }
   };
 
-  const navLinkClass = href => `inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
-    isActive(href) ? "bg-[#F6490D]/15 text-[#FF7143]" : "text-gray-300 hover:bg-white/10 hover:text-white"
-  }`;
-
-  const dropdownButtonClass = active => `inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
-    active ? "bg-[#F6490D]/15 text-[#FF7143]" : "text-gray-300 hover:bg-white/10 hover:text-white"
-  }`;
-
-  const mobileLinkClass = href => `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-    isActive(href) ? "bg-[#F6490D]/15 text-[#FF7143]" : "text-gray-300 hover:bg-white/10 hover:text-white"
-  }`;
-
+  const navLinkClass = href => `inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${isActive(href) ? "bg-[#F6490D]/15 text-[#FF7143]" : "text-gray-300 hover:bg-white/10 hover:text-white"}`;
+  const dropdownButtonClass = active => `inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${active ? "bg-[#F6490D]/15 text-[#FF7143]" : "text-gray-300 hover:bg-white/10 hover:text-white"}`;
+  const mobileLinkClass = href => `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${isActive(href) ? "bg-[#F6490D]/15 text-[#FF7143]" : "text-gray-300 hover:bg-white/10 hover:text-white"}`;
   const initials = (user?.name || user?.email || "U").trim().split(/\s+/).slice(0, 2).map(part => part[0]?.toUpperCase()).join("");
 
   return (
@@ -121,18 +105,10 @@ export default function Header() {
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F6490D] text-lg font-bold text-white shadow-sm">T</div>
           <span className="text-lg font-bold tracking-tight text-white">Tor<span className="text-[#FF7143]">-bit</span></span>
         </Link>
-
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
-          <Link href="/" className={navLinkClass("/")} aria-current={isActive("/") ? "page" : undefined}>
-            <LayoutDashboard size={16} /> Dashboard
-          </Link>
-          <Link href="/referrals" className={navLinkClass("/referrals")} aria-current={isActive("/referrals") ? "page" : undefined}>
-            <Users size={16} /> CV Referrals
-          </Link>
-          <Link href="/job-vacancies" className={navLinkClass("/job-vacancies")} aria-current={isActive("/job-vacancies") ? "page" : undefined}>
-            <BriefcaseBusiness size={16} /> Job Postings
-          </Link>
-
+          <Link href="/" className={navLinkClass("/")} aria-current={isActive("/") ? "page" : undefined}><LayoutDashboard size={16} /> Dashboard</Link>
+          <Link href="/referrals" className={navLinkClass("/referrals")} aria-current={isActive("/referrals") ? "page" : undefined}><Users size={16} /> CV Referrals</Link>
+          <Link href="/job-vacancies" className={navLinkClass("/job-vacancies")} aria-current={isActive("/job-vacancies") ? "page" : undefined}><BriefcaseBusiness size={16} /> Job Postings</Link>
           {recruitmentLinks.length > 0 && (
             <div className="relative">
               <button type="button" onClick={() => toggleDropdown("recruitment")} aria-expanded={activeDropdown === "recruitment"} aria-haspopup="menu" className={dropdownButtonClass(recruitmentActive || activeDropdown === "recruitment")}>
@@ -155,17 +131,10 @@ export default function Header() {
               )}
             </div>
           )}
-
-          {isAdmin && (
-            <Link href="/admin" className={navLinkClass("/admin")} aria-current={isActive("/admin") ? "page" : undefined}>
-              <ShieldCheck size={16} /> Admin Panel
-            </Link>
-          )}
+          {isAdmin && <Link href="/admin" className={navLinkClass("/admin")} aria-current={isActive("/admin") ? "page" : undefined}><ShieldCheck size={16} /> Admin Panel</Link>}
         </nav>
-
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          {user && <IJPNotifications />}
-
+          {user && <Notifications />}
           {user && (
             <div className="relative hidden lg:block">
               <button type="button" onClick={() => toggleDropdown("profile")} aria-expanded={activeDropdown === "profile"} aria-haspopup="menu" className={`flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors ${activeDropdown === "profile" ? "bg-white/10" : "hover:bg-white/10"}`}>
@@ -178,9 +147,7 @@ export default function Header() {
                     <p className="truncate text-sm font-semibold text-gray-900">{user.name || "Employee"}</p>
                     <p className="mt-0.5 truncate text-xs text-gray-500">{user.email}</p>
                   </div>
-                  <Link href="/profile" role="menuitem" onClick={() => setActiveDropdown(null)} className={`mt-2 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${isActive("/profile") ? "bg-orange-50 text-[#F6490D]" : "text-gray-700 hover:bg-gray-50"}`}>
-                    <UserRound size={17} /> Your Profile
-                  </Link>
+                  <Link href="/profile" role="menuitem" onClick={() => setActiveDropdown(null)} className={`mt-2 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${isActive("/profile") ? "bg-orange-50 text-[#F6490D]" : "text-gray-700 hover:bg-gray-50"}`}><UserRound size={17} /> Your Profile</Link>
                   <button type="button" role="menuitem" onClick={handleLogout} disabled={loggingOut} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50">
                     <LogOut size={17} /> {loggingOut ? "Logging out..." : "Log Out"}
                   </button>
@@ -188,13 +155,11 @@ export default function Header() {
               )}
             </div>
           )}
-
           <button type="button" onClick={() => setMenuOpen(prev => !prev)} className="rounded-lg p-2 text-gray-200 transition hover:bg-white/10 lg:hidden" aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} aria-controls="mobile-navigation">
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
-
       {menuOpen && (
         <nav id="mobile-navigation" className="absolute left-0 right-0 top-full z-50 max-h-[calc(100vh-70px)] overflow-y-auto border-t border-white/10 bg-[#171717] px-4 py-4 shadow-2xl lg:hidden" aria-label="Mobile navigation">
           {user && (
@@ -206,43 +171,27 @@ export default function Header() {
               </div>
             </div>
           )}
-
           <div className="space-y-1">
-            <Link href="/" className={mobileLinkClass("/")} onClick={() => setMenuOpen(false)}>
-              <LayoutDashboard size={18} /> Dashboard
-            </Link>
-            <Link href="/referrals" className={mobileLinkClass("/referrals")} onClick={() => setMenuOpen(false)}>
-              <Users size={18} /> CV Referrals
-            </Link>
-            <Link href="/job-vacancies" className={mobileLinkClass("/job-vacancies")} onClick={() => setMenuOpen(false)}>
-              <BriefcaseBusiness size={18} /> Job Postings
-            </Link>
-            <Link href="/profile" className={mobileLinkClass("/profile")} onClick={() => setMenuOpen(false)}>
-              <UserRound size={18} /> Your Profile
-            </Link>
+            <Link href="/" className={mobileLinkClass("/")} onClick={() => setMenuOpen(false)}><LayoutDashboard size={18} /> Dashboard</Link>
+            <Link href="/referrals" className={mobileLinkClass("/referrals")} onClick={() => setMenuOpen(false)}><Users size={18} /> CV Referrals</Link>
+            <Link href="/job-vacancies" className={mobileLinkClass("/job-vacancies")} onClick={() => setMenuOpen(false)}><BriefcaseBusiness size={18} /> Job Postings</Link>
+            <Link href="/profile" className={mobileLinkClass("/profile")} onClick={() => setMenuOpen(false)}><UserRound size={18} /> Your Profile</Link>
           </div>
-
           {recruitmentLinks.length > 0 && (
             <div className="mt-5 border-t border-white/10 pt-4">
               <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-widest text-gray-500">Recruitment</p>
               <div className="space-y-1">
                 {recruitmentLinks.map(({ label, href, icon: Icon }) => (
-                  <Link key={href} href={href} className={mobileLinkClass(href)} onClick={() => setMenuOpen(false)}>
-                    <Icon size={18} /> {label}
-                  </Link>
+                  <Link key={href} href={href} className={mobileLinkClass(href)} onClick={() => setMenuOpen(false)}><Icon size={18} /> {label}</Link>
                 ))}
               </div>
             </div>
           )}
-
           {isAdmin && (
             <div className="mt-4 border-t border-white/10 pt-4">
-              <Link href="/admin" className={mobileLinkClass("/admin")} onClick={() => setMenuOpen(false)}>
-                <ShieldCheck size={18} /> Admin Panel
-              </Link>
+              <Link href="/admin" className={mobileLinkClass("/admin")} onClick={() => setMenuOpen(false)}><ShieldCheck size={18} /> Admin Panel</Link>
             </div>
           )}
-
           {user && (
             <div className="mt-4 border-t border-white/10 pt-4">
               <button type="button" onClick={handleLogout} disabled={loggingOut} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-red-400 transition hover:bg-red-500/10 disabled:opacity-50">
