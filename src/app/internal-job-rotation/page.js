@@ -347,7 +347,10 @@ export default function InternalJobRotation() {
                         <input value={form.proposed_band} onChange={event => updateField("proposed_band", event.target.value)} maxLength={10} placeholder="Enter band" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none focus:border-[#F6490D] focus:ring-2 focus:ring-orange-100" />
                       </div>
                     </div>
-                    {sbuChanged && <div className="mt-4 flex gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs text-amber-800"><Info size={17} className="shrink-0" /><span>Changing the SBU requires a different reporting manager from the proposed SBU. Consider reviewing the employee's designation as well; changing it is optional.</span></div>}
+                    {sbuChanged && <div className="mt-4 flex gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs text-amber-800"><Info size={17} className="shrink-0" />
+                    <span>
+                      {"Changing the SBU requires a different reporting manager from the proposed SBU. Consider reviewing the employee's designation as well; changing it is optional."}
+                      </span></div>}
                     {managerChanged && !sbuChanged && <div className="mt-3 flex items-center gap-2 text-xs text-green-700"><CheckCircle2 size={15} /> Reporting manager change detected within the same SBU.</div>}
                   </div>
                 </div>
@@ -457,7 +460,8 @@ export default function InternalJobRotation() {
                 <Info size={18} className="mt-0.5 shrink-0 text-amber-600" />
                 <div>
                   <p className="text-xs font-bold text-amber-900">Important: Approval Required</p>
-                  <p className="mt-1 text-xs leading-relaxed text-amber-800">Submitting this nomination creates a <strong>Pending</strong> request and notifies the designated administrators. The employee's existing SBU, reporting manager, designation, and band will remain unchanged until the rotation is formally approved and implemented.</p>
+                  <p className="mt-1 text-xs leading-relaxed text-amber-800">{"Submitting this nomination creates a"} <strong>Pending</strong> {"request and notifies the designated administrators. The employee's existing SBU, reporting manager, designation, and band will remain unchanged until the rotation is formally approved and implemented."}
+                  </p>
                 </div>
               </div>
             </div>
