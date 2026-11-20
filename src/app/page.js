@@ -15,8 +15,8 @@ export default function DashboardPage() {
     );
   }
 
-  // Fallback if user is not logged in
   const userName = user?.name || 'User';
+  const canAccessIJR = Boolean(user?.is_hr);
 
   const modules = [
     {
@@ -29,11 +29,11 @@ export default function DashboardPage() {
       description: "Post internal job openings and allow employees to apply for available positions within the organization.",
       link: "/job-vacancies",
     },
-    // {
-    //   title: "Internal Job Rotation System (Work In Progress)",
-    //   description: "Facilitate structured internal job rotations for skill development and career growth of employees.",
-    //   link: "/internal-job-rotation",
-    // },
+    ...(canAccessIJR ? [{
+      title: "Internal Job Rotation System",
+      description: "Nominate employees for internal job rotations, propose organizational changes, and manage rotation requests.",
+      link: "/internal-job-rotation",
+    }] : []),
   ];
 
   return (

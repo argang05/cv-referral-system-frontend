@@ -4,7 +4,7 @@ import axios from "axios";
 import { useUser } from "@/context/UserContext";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, ChevronDown, UserRound, LogOut, BriefcaseBusiness, ClipboardCheck, GraduationCap, ShieldCheck, LayoutDashboard, Users, CheckCircle2 } from "lucide-react";
+import { Menu, X, ChevronDown, UserRound, LogOut, BriefcaseBusiness, ClipboardCheck, GraduationCap, ShieldCheck, LayoutDashboard, Users, CheckCircle2, ArrowLeftRight } from "lucide-react";
 import { toast } from "sonner";
 import Notifications from "@/_components/Notifications";
 
@@ -17,6 +17,7 @@ export default function Header() {
   const headerRef = useRef(null);
   const adminEmails = ["abhishek.ganguly@tor.ai", "admin2@gmail.com", "admin3@gmail.com"];
   const isAdmin = adminEmails.some(email => email.toLowerCase() === (user?.email || "").trim().toLowerCase());
+  const canAccessIJR = Boolean(user?.is_hr);
 
   useEffect(() => {
     setIsSbuReviewer(false);
@@ -109,6 +110,7 @@ export default function Header() {
           <Link href="/" className={navLinkClass("/")} aria-current={isActive("/") ? "page" : undefined}><LayoutDashboard size={16} /> Dashboard</Link>
           <Link href="/referrals" className={navLinkClass("/referrals")} aria-current={isActive("/referrals") ? "page" : undefined}><Users size={16} /> CV Referrals</Link>
           <Link href="/job-vacancies" className={navLinkClass("/job-vacancies")} aria-current={isActive("/job-vacancies") ? "page" : undefined}><BriefcaseBusiness size={16} /> Job Postings</Link>
+          {canAccessIJR && <Link href="/internal-job-rotation" className={navLinkClass("/internal-job-rotation")} aria-current={isActive("/internal-job-rotation") ? "page" : undefined}><ArrowLeftRight size={16} /> Job Rotation</Link>}
           {recruitmentLinks.length > 0 && (
             <div className="relative">
               <button type="button" onClick={() => toggleDropdown("recruitment")} aria-expanded={activeDropdown === "recruitment"} aria-haspopup="menu" className={dropdownButtonClass(recruitmentActive || activeDropdown === "recruitment")}>
@@ -175,6 +177,7 @@ export default function Header() {
             <Link href="/" className={mobileLinkClass("/")} onClick={() => setMenuOpen(false)}><LayoutDashboard size={18} /> Dashboard</Link>
             <Link href="/referrals" className={mobileLinkClass("/referrals")} onClick={() => setMenuOpen(false)}><Users size={18} /> CV Referrals</Link>
             <Link href="/job-vacancies" className={mobileLinkClass("/job-vacancies")} onClick={() => setMenuOpen(false)}><BriefcaseBusiness size={18} /> Job Postings</Link>
+            {canAccessIJR && <Link href="/internal-job-rotation" className={mobileLinkClass("/internal-job-rotation")} onClick={() => setMenuOpen(false)}><ArrowLeftRight size={18} /> Job Rotation</Link>}
             <Link href="/profile" className={mobileLinkClass("/profile")} onClick={() => setMenuOpen(false)}><UserRound size={18} /> Your Profile</Link>
           </div>
           {recruitmentLinks.length > 0 && (
