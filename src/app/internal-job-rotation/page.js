@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useUser } from "@/context/UserContext";
 import { toast } from "sonner";
-import { ArrowLeftRight, Search, ChevronDown, Loader2, UserRound, Building2, BriefcaseBusiness, Users, Info, Send, RotateCcw, ClipboardList, CalendarDays, CheckCircle2, Clock3, Eye, X, ShieldAlert, ArrowRight, FileText } from "lucide-react";
+import { ArrowLeftRight, Search, ChevronDown, Loader2, UserRound, Building2, BriefcaseBusiness, Users, Info, Send, RotateCcw, ClipboardList, CalendarDays, CheckCircle2, Clock3, Eye, X, ShieldAlert, ArrowRight, FileText, MessageSquareText } from "lucide-react";
 
 const EMPTY_FORM = { employee_emp_id: "", proposed_sub_bu: "", proposed_reporting_manager_emp_id: "", proposed_designation: "", proposed_band: "", reason: "", remarks: "", effective_date: "" };
 const STATUS_STYLES = { PENDING: "bg-amber-50 text-amber-700 border-amber-200", APPROVED: "bg-blue-50 text-blue-700 border-blue-200", REJECTED: "bg-red-50 text-red-700 border-red-200", IMPLEMENTED: "bg-green-50 text-green-700 border-green-200", CANCELLED: "bg-gray-100 text-gray-600 border-gray-200" };
@@ -347,10 +347,7 @@ export default function InternalJobRotation() {
                         <input value={form.proposed_band} onChange={event => updateField("proposed_band", event.target.value)} maxLength={10} placeholder="Enter band" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none focus:border-[#F6490D] focus:ring-2 focus:ring-orange-100" />
                       </div>
                     </div>
-                    {sbuChanged && <div className="mt-4 flex gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs text-amber-800"><Info size={17} className="shrink-0" />
-                    <span>
-                      {"Changing the SBU requires a different reporting manager from the proposed SBU. Consider reviewing the employee's designation as well; changing it is optional."}
-                      </span></div>}
+                    {sbuChanged && <div className="mt-4 flex gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs text-amber-800"><Info size={17} className="shrink-0" /><span>{"Changing the SBU requires a different reporting manager from the proposed SBU. Consider reviewing the employee's designation as well; changing it is optional."}</span></div>}
                     {managerChanged && !sbuChanged && <div className="mt-3 flex items-center gap-2 text-xs text-green-700"><CheckCircle2 size={15} /> Reporting manager change detected within the same SBU.</div>}
                   </div>
                 </div>
@@ -460,8 +457,7 @@ export default function InternalJobRotation() {
                 <Info size={18} className="mt-0.5 shrink-0 text-amber-600" />
                 <div>
                   <p className="text-xs font-bold text-amber-900">Important: Approval Required</p>
-                  <p className="mt-1 text-xs leading-relaxed text-amber-800">{"Submitting this nomination creates a"} <strong>Pending</strong> {"request and notifies the designated administrators. The employee's existing SBU, reporting manager, designation, and band will remain unchanged until the rotation is formally approved and implemented."}
-                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-amber-800">{"Submitting this nomination creates a"} <strong>Pending</strong> {"request and notifies the designated administrators. The employee's existing SBU, reporting manager, designation, and band will remain unchanged until the rotation is formally approved and implemented."}</p>
                 </div>
               </div>
             </div>
@@ -488,6 +484,28 @@ export default function InternalJobRotation() {
               ))}
             </div>
             <div className="mt-5 space-y-4 rounded-xl bg-gray-50 p-4"><div><p className="text-xs font-semibold text-gray-500">Rotation Reason</p><p className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{selectedNomination.reason}</p></div>{selectedNomination.remarks && <div><p className="text-xs font-semibold text-gray-500">Remarks</p><p className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{selectedNomination.remarks}</p></div>}<div className="grid grid-cols-2 gap-3"><div><p className="text-xs font-semibold text-gray-500">Effective Date</p><p className="mt-1 text-sm text-gray-800">{formatDate(selectedNomination.effective_date)}</p></div><div><p className="text-xs font-semibold text-gray-500">Nominated By</p><p className="mt-1 text-sm text-gray-800">{selectedNomination.nominated_by_name}</p></div></div></div>
+
+            {["APPROVED", "REJECTED", "IMPLEMENTED"].includes(selectedNomination.status) && (
+              <div className={`mt-5 rounded-xl border p-4 ${selectedNomination.status === "REJECTED" ? "border-red-200 bg-red-50/70" : "border-green-200 bg-green-50/70"}`}>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <MessageSquareText size={18} className={selectedNomination.status === "REJECTED" ? "text-red-600" : "text-green-700"} />
+                    <h3 className="text-sm font-bold text-gray-900">Administrator Decision</h3>
+                  </div>
+                  <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[selectedNomination.status] || STATUS_STYLES.CANCELLED}`}>{selectedNomination.status}</span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div><p className="text-xs font-semibold text-gray-500">Reviewed By</p><p className="mt-1 text-sm font-medium text-gray-900">{selectedNomination.decided_by_name || "Administrator"}</p></div>
+                  <div><p className="text-xs font-semibold text-gray-500">Decision Date</p><p className="mt-1 text-sm font-medium text-gray-900">{formatDate(selectedNomination.decided_at)}</p></div>
+                </div>
+                {selectedNomination.decision_remarks?.trim() && (
+                  <div className={`mt-4 rounded-lg border p-3 ${selectedNomination.status === "REJECTED" ? "border-red-100 bg-white/80" : "border-green-100 bg-white/80"}`}>
+                    <p className="mb-1.5 text-xs font-bold text-gray-700">Administrator Comments</p>
+                    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-gray-800">{selectedNomination.decision_remarks}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
