@@ -1,9 +1,11 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { X } from "lucide-react";
 import { useUser } from "@/context/UserContext";
+import ReferralEmployeeSelector from "@/_components/ReferralEmployeeSelector";
 
 const INITIAL_FORM = {
   candidate_name: "", candidate_email: "", candidate_phone: "",
@@ -15,7 +17,10 @@ export default function IJPReferralForm({ job, onClose, onSubmitted }) {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [reviewers, setReviewers] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [onBehalfOf, setOnBehalfOf] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const isInternship = job.employment_type === "INTERNSHIP";
+
   const typeOptions = isInternship ? [
     { value: "INTERN_FRESHER", label: "Internship - Fresher" },
     { value: "INTERN_EXPERIENCED", label: "Internship - Experienced" }
@@ -43,12 +48,17 @@ export default function IJPReferralForm({ job, onClose, onSubmitted }) {
 
   const hasContact = Boolean(formData.candidate_email.trim() || formData.candidate_phone.trim());
   const validEmail = !formData.candidate_email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.candidate_email.trim());
-  const canSubmit = Boolean(formData.candidate_name.trim() && formData.candidate_type && formData.cv && hasContact && validEmail && !submitting);
+  const canSubmit = Boolean(
+    formData.candidate_name.trim() && formData.candidate_type &&
+    formData.cv && hasContact && validEmail &&
+    (!onBehalfOf || selectedEmployee?.emp_id) && !submitting
+  );
 
   const handleSubmit = async e => {
     e.preventDefault();
     if (submitting) return;
     if (!user?.emp_id) return toast.error("Please log in again.");
+    if (onBehalfOf && !selectedEmployee?.emp_id) return toast.error("Please select the employee you are referring on behalf of.");
     if (!formData.candidate_name.trim() || !formData.candidate_type || !formData.cv) return toast.error("Complete all required fields.");
     if (!hasContact) return toast.error("Provide at least one candidate contact detail: email or phone.");
     if (!validEmail) return toast.error("Please enter a valid candidate email address.");
@@ -63,7 +73,7 @@ export default function IJPReferralForm({ job, onClose, onSubmitted }) {
       if (!uploaded.data?.url) throw new Error("CV upload did not return a URL.");
 
       await axios.post("/api/referrals/ijp", {
-        emp_id: user.emp_id,
+        emp_id: onBehalfOf ? selectedEmployee.emp_id : user.emp_id,
         job_id: job.job_id,
         candidate_name: formData.candidate_name.trim(),
         candidate_email: formData.candidate_email.trim(),
@@ -103,6 +113,14 @@ export default function IJPReferralForm({ job, onClose, onSubmitted }) {
             <p className="text-gray-600">Location: {job.location || "Not specified"}</p>
             <p className="text-gray-600">Employment: {isInternship ? "Internship" : "Full Time"}</p>
           </div>
+
+          <ReferralEmployeeSelector
+            checked={onBehalfOf}
+            onCheckedChange={setOnBehalfOf}
+            selectedEmployee={selectedEmployee}
+            onEmployeeChange={setSelectedEmployee}
+            disabled={submitting}
+          />
 
           <label className="block text-sm font-medium text-gray-700">Candidate Name *
             <input name="candidate_name" value={formData.candidate_name} onChange={handleChange} disabled={submitting} className={`${inputClass} mt-1.5`} required placeholder="Candidate full name" />
