@@ -64,14 +64,14 @@ export default function IJPReferralForm({ job, onClose, onSubmitted }) {
     if (!validEmail) return toast.error("Please enter a valid candidate email address.");
     if (formData.cv.size > 5 * 1024 * 1024) return toast.error("CV cannot exceed 5 MB.");
     if (!/\.(pdf|doc|docx)$/i.test(formData.cv.name)) return toast.error("Only PDF, DOC and DOCX files are accepted.");
-
+  
     try {
       setSubmitting(true);
       const upload = new FormData();
       upload.append("cv", formData.cv);
       const uploaded = await axios.post("/api/upload-cv", upload);
       if (!uploaded.data?.url) throw new Error("CV upload did not return a URL.");
-
+  
       await axios.post("/api/referrals/ijp", {
         emp_id: onBehalfOf ? selectedEmployee.emp_id : user.emp_id,
         job_id: job.job_id,
@@ -83,7 +83,8 @@ export default function IJPReferralForm({ job, onClose, onSubmitted }) {
         cv_url: uploaded.data.url,
         additional_comment: formData.additional_comment
       });
-
+  
+      window.dispatchEvent(new Event("notifications:refresh"));
       onSubmitted?.({ candidateName: formData.candidate_name.trim(), jobTitle: job.job_title });
     } catch (error) {
       const data = error.response?.data;

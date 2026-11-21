@@ -139,33 +139,26 @@ export default function AcademicDetailsForm({ referral, empId, onClose, onSaved 
 
   const submitAcademicDetails = async (action) => {
     if (loading || isLocked) return;
-
     const validationError = validateMarks(action === 'FINALIZE');
     if (validationError) {
       setError(validationError);
       setShowWarning(false);
       return;
     }
-
+  
     setLoading(true);
     setError('');
-
     const payload = { emp_id: empId, action };
-
     for (const field of FIELD_CONFIG) {
       const value = marks[field.key];
       payload[field.key] = value === '' || value === null ? null : Number(value);
     }
-
+  
     try {
-      const response = await axios.patch(
-        `/api/referrals/academic-details/${referralId}`,
-        payload
-      );
-
+      const response = await axios.patch(`/api/referrals/academic-details/${referralId}`, payload);
       setShowWarning(false);
       setAcknowledged(false);
-      await onSaved(response.data.message || 'Academic details saved successfully.');
+      await onSaved(response.data.message || 'Academic details saved successfully.', action);
     } catch (err) {
       setError(getApiError(err, 'Failed to save academic details.'));
       setShowWarning(false);

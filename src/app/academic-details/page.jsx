@@ -86,9 +86,10 @@ export default function AcademicDetailsPage() {
     });
   }, [referrals, search]);
 
-  const handleSaved = async (message) => {
+  const handleSaved = async (message, action) => {
     setSelectedReferral(null);
     setSuccess(message);
+    if (action === 'FINALIZE') window.dispatchEvent(new Event('notifications:refresh'));
     await fetchReferrals(true);
   };
 

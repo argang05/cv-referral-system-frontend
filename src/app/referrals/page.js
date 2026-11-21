@@ -166,6 +166,7 @@ function ReferralsPage() {
       console.log('Submitting referral:', referralData);
 
       await axios.post('/api/referrals', referralData);
+      window.dispatchEvent(new Event("notifications:refresh"));
       toast.success('Referral submitted successfully!');
       setShowForm(false);
       resetForm();
